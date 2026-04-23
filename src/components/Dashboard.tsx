@@ -139,7 +139,8 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
                     </div>
                   )}
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </section>
