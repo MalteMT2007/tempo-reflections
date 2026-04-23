@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { ArrowRight, X } from "lucide-react";
-import { Genre } from "@/lib/storage";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, X, Plus } from "lucide-react";
+import { Genre, isClassicalGenre } from "@/lib/storage";
+import { searchClassicalPieces, PieceSuggestion } from "@/lib/pieceSearch";
 
 type Props = {
   genre: Genre;
@@ -15,23 +16,63 @@ type Props = {
   onCancel: () => void;
 };
 
-const SUGGESTED_TAGS = ["technique", "scales", "repertoire", "sight-reading", "etudes", "improv", "tone", "rhythm"];
+const SUGGESTED_TAGS = ["technique", "scales", "repertoire", "sight-reading", "etudes", "improv", "tone", "rhythm", "dynamics", "intonation"];
 
 export const SessionSetup = ({ genre, onStart, onCancel }: Props) => {
   const [title, setTitle] = useState("");
   const [byline, setByline] = useState(""); // composer or artist
-  const [focus, setFocus] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [customTag, setCustomTag] = useState("");
   const [goal, setGoal] = useState("");
 
-  const isClassical = genre === "classical";
+  const [suggestions, setSuggestions] = useState<PieceSuggestion[]>([]);
+  const [showSugg, setShowSugg] = useState(false);
+  const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const isClassical = isClassicalGenre(genre);
   const titleLabel = isClassical ? "Piece" : "Song";
   const bylineLabel = isClassical ? "Composer" : "Artist";
   const titlePh = isClassical ? "Bach — Partita No. 2, Allemande" : "Blackbird";
   const bylinePh = isClassical ? "J. S. Bach" : "The Beatles";
 
+  // Debounced classical piece search
+  useEffect(() => {
+    if (!isClassical) return;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    if (title.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    debounceRef.current = window.setTimeout(() => {
+      abortRef.current?.abort();
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+      searchClassicalPieces(title, ctrl.signal).then((res) => {
+        setSuggestions(res);
+      });
+    }, 350);
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+  }, [title, isClassical]);
+
   const toggleTag = (t: string) =>
     setTags((curr) => (curr.includes(t) ? curr.filter((x) => x !== t) : [...curr, t]));
+
+  const addCustomTag = () => {
+    const t = customTag.trim().toLowerCase();
+    if (!t) return;
+    if (!tags.includes(t)) setTags((curr) => [...curr, t]);
+    setCustomTag("");
+  };
+
+  const pickSuggestion = (s: PieceSuggestion) => {
+    setTitle(s.title);
+    if (s.composer) setByline(s.composer);
+    setShowSugg(false);
+    setSuggestions([]);
+  };
 
   const canStart = title.trim().length > 0;
 
@@ -56,16 +97,35 @@ export const SessionSetup = ({ genre, onStart, onCancel }: Props) => {
         </div>
 
         <div className="space-y-7 animate-fade-in" style={{ animationDelay: "120ms" }}>
-          {/* Title */}
-          <div>
+          {/* Title with autocomplete */}
+          <div className="relative">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">{titleLabel}</p>
             <input
               autoFocus
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { setTitle(e.target.value); setShowSugg(true); }}
+              onFocus={() => setShowSugg(true)}
+              onBlur={() => window.setTimeout(() => setShowSugg(false), 150)}
               placeholder={titlePh}
               className="w-full bg-transparent border-b border-border focus:border-ink outline-none py-2 font-serif text-xl placeholder:text-muted-foreground/60 placeholder:italic transition-colors"
             />
+            {isClassical && showSugg && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-elev z-10 overflow-hidden">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); pickSuggestion(s); }}
+                    className="w-full text-left px-3 py-2 hover:bg-muted transition border-b border-border last:border-0"
+                  >
+                    <p className="font-serif text-sm text-ink truncate">{s.title}</p>
+                    {s.composer && (
+                      <p className="text-[11px] font-serif italic text-ink-soft truncate">{s.composer}</p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Byline */}
@@ -79,22 +139,13 @@ export const SessionSetup = ({ genre, onStart, onCancel }: Props) => {
             />
           </div>
 
-          {/* Focus */}
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">Focus today (optional)</p>
-            <textarea
-              value={focus}
-              onChange={(e) => setFocus(e.target.value)}
-              placeholder={isClassical ? "Voice clarity in the left hand…" : "Solo phrasing, smoother chord changes…"}
-              rows={2}
-              className="w-full bg-transparent border-b border-border focus:border-ink outline-none py-2 font-serif text-base resize-none placeholder:text-muted-foreground/60 placeholder:italic transition-colors"
-            />
-          </div>
-
-          {/* Tags */}
+          {/* Focus areas (merged: tags + custom) */}
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3">Focus areas</p>
-            <div className="flex flex-wrap gap-2">
+            <p className="text-xs text-ink-soft font-serif italic mb-3">
+              Pick what you want to work on — you'll rate each one after.
+            </p>
+            <div className="flex flex-wrap gap-2 mb-3">
               {SUGGESTED_TAGS.map((t) => {
                 const active = tags.includes(t);
                 return (
@@ -111,6 +162,36 @@ export const SessionSetup = ({ genre, onStart, onCancel }: Props) => {
                   </button>
                 );
               })}
+              {tags
+                .filter((t) => !SUGGESTED_TAGS.includes(t))
+                .map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => toggleTag(t)}
+                    className="text-xs px-3 py-1.5 rounded-full border bg-ink text-paper border-ink"
+                  >
+                    {t}
+                  </button>
+                ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                value={customTag}
+                onChange={(e) => setCustomTag(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); addCustomTag(); }
+                }}
+                placeholder="Add your own focus…"
+                className="flex-1 bg-transparent border-b border-border focus:border-ink outline-none py-1.5 text-sm placeholder:italic placeholder:text-muted-foreground/60"
+              />
+              <button
+                onClick={addCustomTag}
+                disabled={!customTag.trim()}
+                className="h-8 w-8 rounded-full border border-border flex items-center justify-center text-ink-soft hover:border-ink/40 disabled:opacity-30"
+                aria-label="Add focus"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
 
@@ -133,7 +214,7 @@ export const SessionSetup = ({ genre, onStart, onCancel }: Props) => {
               title: title.trim(),
               composer: isClassical ? byline.trim() : undefined,
               artist: !isClassical ? byline.trim() : undefined,
-              focus: focus.trim(),
+              focus: "",
               tags,
               goal: goal.trim(),
             })
