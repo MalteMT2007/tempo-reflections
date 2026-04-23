@@ -167,3 +167,38 @@ export function computeStats(sessions: Session[]) {
 
   return { todaySec, weekSec, streak, last7, total: sessions.length };
 }
+
+export type PieceStat = {
+  key: string;
+  title: string;
+  byline: string;
+  sessions: number;
+  totalSec: number;
+  lastAt: number;
+};
+
+export function computePieceStats(sessions: Session[]): PieceStat[] {
+  const map = new Map<string, PieceStat>();
+  for (const s of sessions) {
+    if (!s.title) continue;
+    const byline = s.composer || s.artist || "";
+    const key = pieceKey(s.title, byline);
+    const existing = map.get(key);
+    if (existing) {
+      existing.sessions += 1;
+      existing.totalSec += s.durationSec;
+      existing.lastAt = Math.max(existing.lastAt, s.startedAt);
+    } else {
+      map.set(key, {
+        key,
+        title: s.title,
+        byline,
+        sessions: 1,
+        totalSec: s.durationSec,
+        lastAt: s.startedAt,
+      });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => b.lastAt - a.lastAt);
+}
+
