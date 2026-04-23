@@ -98,11 +98,14 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
             </div>
           ) : (
             <ul className="divide-y divide-border">
-              {sessions.slice(0, 12).map((s) => (
+              {sessions.slice(0, 12).map((s) => {
+                const titleLine = s.title || s.focus;
+                const byline = s.composer || s.artist;
+                return (
                 <li key={s.id} className="py-4">
                   <div className="flex items-baseline justify-between gap-3 mb-1">
                     <p className="font-serif text-lg text-ink leading-snug truncate">
-                      {s.focus}
+                      {titleLine}
                     </p>
                     <span className="text-xs text-muted-foreground tabular shrink-0 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
@@ -110,11 +113,17 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                    <span>{relativeDay(s.startedAt)}</span>
+                    <span>
+                      {relativeDay(s.startedAt)}
+                      {byline && <span className="font-serif italic text-ink-soft"> · {byline}</span>}
+                    </span>
                     {s.tags.length > 0 && (
-                      <span className="italic font-serif text-ink-soft">{s.tags.join(" · ")}</span>
+                      <span className="italic font-serif text-ink-soft truncate">{s.tags.join(" · ")}</span>
                     )}
                   </div>
+                  {s.focus && s.title && (
+                    <p className="mt-1 text-xs text-ink-soft font-serif italic truncate">"{s.focus}"</p>
+                  )}
                   {(s.improved || s.needsWork) && (
                     <div className="mt-2 pl-3 border-l-2 border-sepia/40 space-y-0.5">
                       {s.improved && (
@@ -130,7 +139,8 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
                     </div>
                   )}
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </section>
