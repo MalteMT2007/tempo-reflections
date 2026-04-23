@@ -1,10 +1,13 @@
-export type Genre = "classical" | "other";
+export type Genre = "classical" | "jazz" | "rock" | "pop" | "folk" | "own";
 
 export type Profile = {
   instrument: string;
   genre: Genre;
+  genreLabel?: string; // for "own" / freetext
   createdAt: number;
 };
+
+export const isClassicalGenre = (g: Genre) => g === "classical";
 
 export type TagRating = {
   tag: string;
