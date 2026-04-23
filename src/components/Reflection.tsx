@@ -1,17 +1,31 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { formatDuration } from "@/lib/storage";
+import { TagRating, formatDuration } from "@/lib/storage";
 
 type Props = {
   durationSec: number;
-  onSave: (data: { improved: string; needsWork: string; rating: number }) => void;
+  tags: string[];
+  onSave: (data: {
+    improved: string;
+    needsWork: string;
+    rating: number;
+    tagRatings: TagRating[];
+  }) => void;
   onSkip: () => void;
 };
 
-export const Reflection = ({ durationSec, onSave, onSkip }: Props) => {
+const RATING_LABELS = ["", "barely", "a little", "noticeably", "a lot", "transformed"];
+
+export const Reflection = ({ durationSec, tags, onSave, onSkip }: Props) => {
   const [improved, setImproved] = useState("");
   const [needsWork, setNeedsWork] = useState("");
   const [rating, setRating] = useState(3);
+  const [tagRatings, setTagRatings] = useState<Record<string, number>>(
+    Object.fromEntries(tags.map((t) => [t, 3]))
+  );
+
+  const setTag = (t: string, n: number) =>
+    setTagRatings((curr) => ({ ...curr, [t]: n }));
 
   return (
     <div className="fixed inset-0 z-50 bg-background overflow-y-auto animate-fade-in-slow">
@@ -22,7 +36,45 @@ export const Reflection = ({ durationSec, onSave, onSkip }: Props) => {
           <p className="font-serif italic text-ink-soft mt-3">A moment to reflect.</p>
         </div>
 
-        <div className="space-y-7 animate-fade-in" style={{ animationDelay: "100ms" }}>
+        <div className="space-y-8 animate-fade-in" style={{ animationDelay: "100ms" }}>
+          {/* Per-tag improvement ratings */}
+          {tags.length > 0 && (
+            <div>
+              <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground block mb-4">
+                How much better does each feel?
+              </label>
+              <div className="space-y-5">
+                {tags.map((t) => {
+                  const value = tagRatings[t] ?? 3;
+                  return (
+                    <div key={t}>
+                      <div className="flex items-baseline justify-between mb-2">
+                        <span className="font-serif text-base text-ink">{t}</span>
+                        <span className="font-serif italic text-xs text-ink-soft">
+                          {RATING_LABELS[value]}
+                        </span>
+                      </div>
+                      <div className="flex gap-1.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            onClick={() => setTag(t, n)}
+                            className={`flex-1 h-9 rounded-md border transition-all ${
+                              value >= n
+                                ? "bg-ink border-ink"
+                                : "border-border hover:border-ink/40"
+                            }`}
+                            aria-label={`${t} rating ${n}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground">What improved?</label>
             <textarea
@@ -46,7 +98,7 @@ export const Reflection = ({ durationSec, onSave, onSkip }: Props) => {
           </div>
 
           <div>
-            <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground block mb-3">Focus quality</label>
+            <label className="text-xs uppercase tracking-[0.2em] text-muted-foreground block mb-3">Overall focus quality</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
@@ -76,7 +128,14 @@ export const Reflection = ({ durationSec, onSave, onSkip }: Props) => {
             Skip
           </button>
           <button
-            onClick={() => onSave({ improved, needsWork, rating })}
+            onClick={() =>
+              onSave({
+                improved,
+                needsWork,
+                rating,
+                tagRatings: tags.map((t) => ({ tag: t, rating: tagRatings[t] ?? 3 })),
+              })
+            }
             className="flex-1 py-4 rounded-full bg-ink text-paper text-sm flex items-center justify-center gap-2 hover:opacity-90 transition shadow-elev"
           >
             <Check className="h-4 w-4" /> Save session

@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Square } from "lucide-react";
+import { Square, BookOpen, Users } from "lucide-react";
 import { Metronome } from "./Metronome";
-import { formatDuration } from "@/lib/storage";
+import { Notebook } from "./Notebook";
+import { formatDuration, loadNotebook } from "@/lib/storage";
 
 type Props = {
+  title: string;
+  byline: string;
   focus: string;
   tags: string[];
   goal: string;
@@ -11,9 +14,10 @@ type Props = {
   onEnd: (data: { durationSec: number; notes: string }) => void;
 };
 
-export const PracticeMode = ({ focus, tags, goal, startedAt, onEnd }: Props) => {
+export const PracticeMode = ({ title, byline, focus, tags, goal, startedAt, onEnd }: Props) => {
   const [elapsed, setElapsed] = useState(0);
-  const [notes, setNotes] = useState("");
+  const [notebookOpen, setNotebookOpen] = useState(false);
+  const [noteCount, setNoteCount] = useState(0);
   const tickRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -25,15 +29,25 @@ export const PracticeMode = ({ focus, tags, goal, startedAt, onEnd }: Props) => 
     };
   }, [startedAt]);
 
+  useEffect(() => {
+    setNoteCount(loadNotebook(title, byline).entries.length);
+  }, [title, byline, notebookOpen]);
+
   return (
     <div className="fixed inset-0 z-50 bg-background paper-grain overflow-y-auto animate-fade-in-slow">
       <div className="max-w-md mx-auto px-6 pt-10 pb-32 min-h-screen flex flex-col">
-        {/* Focus */}
+        {/* Piece header */}
         <div className="text-center animate-fade-in">
           <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-3">In session</p>
-          <h2 className="font-serif italic text-xl font-light text-ink-soft text-balance leading-snug max-w-xs mx-auto">
-            "{focus}"
+          <h2 className="font-serif text-2xl font-light text-ink text-balance leading-snug max-w-xs mx-auto">
+            {title}
           </h2>
+          {byline && (
+            <p className="font-serif italic text-ink-soft text-sm mt-1">{byline}</p>
+          )}
+          {focus && (
+            <p className="mt-3 font-serif italic text-ink-soft text-sm max-w-xs mx-auto">"{focus}"</p>
+          )}
           {goal && (
             <p className="mt-2 text-xs text-muted-foreground tabular">{goal}</p>
           )}
@@ -65,27 +79,60 @@ export const PracticeMode = ({ focus, tags, goal, startedAt, onEnd }: Props) => 
           <Metronome compact />
         </div>
 
-        {/* Notes */}
-        <div className="rounded-lg border border-border bg-card/60 backdrop-blur-sm p-4 shadow-soft">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">Margin notes</p>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Jot a thought, fingering, breath mark…"
-            rows={3}
-            className="w-full bg-transparent outline-none resize-none font-serif text-base placeholder:italic placeholder:text-muted-foreground/60"
-          />
+        {/* Tools menu */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setNotebookOpen(true)}
+            className="rounded-lg border border-border bg-card/60 backdrop-blur-sm p-4 shadow-soft text-left hover:border-ink/40 transition"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <BookOpen className="h-4 w-4 text-ink-soft" />
+              {noteCount > 0 && (
+                <span className="text-[10px] tabular text-muted-foreground">{noteCount}</span>
+              )}
+            </div>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Notebook</p>
+            <p className="font-serif text-sm text-ink mt-1">Notes for this piece</p>
+          </button>
+
+          <button
+            disabled
+            title="Coming soon"
+            className="rounded-lg border border-dashed border-border bg-card/30 p-4 text-left opacity-60 cursor-not-allowed"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <Users className="h-4 w-4 text-ink-soft" />
+              <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Soon</span>
+            </div>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Community</p>
+            <p className="font-serif text-sm text-ink mt-1">Notes from others</p>
+          </button>
         </div>
 
         {/* End */}
         <button
-          onClick={() => onEnd({ durationSec: elapsed, notes })}
+          onClick={() => {
+            const nb = loadNotebook(title, byline);
+            const recent = nb.entries
+              .filter((e) => e.at >= startedAt)
+              .map((e) => e.text)
+              .join("\n\n");
+            onEnd({ durationSec: elapsed, notes: recent });
+          }}
           className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-ink text-paper rounded-full pl-5 pr-6 py-3 flex items-center gap-2 shadow-elev hover:opacity-90 transition"
         >
           <Square className="h-3.5 w-3.5 fill-paper" />
           <span className="text-sm tracking-wide">End session</span>
         </button>
       </div>
+
+      <Notebook
+        title={title}
+        byline={byline}
+        open={notebookOpen}
+        onClose={() => setNotebookOpen(false)}
+        onChange={(entries) => setNoteCount(entries.length)}
+      />
     </div>
   );
 };

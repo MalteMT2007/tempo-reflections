@@ -3,11 +3,22 @@ import { Dashboard } from "@/components/Dashboard";
 import { SessionSetup } from "@/components/SessionSetup";
 import { PracticeMode } from "@/components/PracticeMode";
 import { Reflection } from "@/components/Reflection";
-import { Session, loadSessions, saveSession } from "@/lib/storage";
+import { Onboarding } from "@/components/Onboarding";
+import {
+  Profile,
+  Session,
+  loadProfile,
+  saveProfile,
+  loadSessions,
+  saveSession,
+} from "@/lib/storage";
 
 type Phase = "dashboard" | "setup" | "practice" | "reflect";
 
 type Draft = {
+  title: string;
+  composer?: string;
+  artist?: string;
   focus: string;
   tags: string[];
   goal: string;
@@ -18,14 +29,18 @@ type Draft = {
 
 const Index = () => {
   const [phase, setPhase] = useState<Phase>("dashboard");
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
 
   useEffect(() => {
+    setProfile(loadProfile());
+    setProfileLoaded(true);
     setSessions(loadSessions());
     document.title = "Practice — A companion for musicians";
     const meta = document.querySelector('meta[name="description"]');
-    const desc = "A minimal, distraction-free practice companion for musicians: timer, metronome, notes, and reflective progress tracking.";
+    const desc = "A minimal, distraction-free practice companion for musicians: timer, metronome, notebook, and reflective progress tracking.";
     if (meta) meta.setAttribute("content", desc);
     else {
       const m = document.createElement("meta");
@@ -42,15 +57,36 @@ const Index = () => {
     setPhase("dashboard");
   };
 
+  if (!profileLoaded) return <main className="min-h-screen" />;
+
+  if (!profile) {
+    return (
+      <main className="min-h-screen">
+        <Onboarding
+          onComplete={(p) => {
+            saveProfile(p);
+            setProfile(p);
+          }}
+        />
+      </main>
+    );
+  }
+
+  const byline = (d: Draft) => d.composer || d.artist || "";
+
   return (
     <main className="min-h-screen">
       <Dashboard sessions={sessions} onStart={() => setPhase("setup")} />
 
       {phase === "setup" && (
         <SessionSetup
+          genre={profile.genre}
           onCancel={() => setPhase("dashboard")}
-          onStart={({ focus, tags, goal }) => {
+          onStart={({ title, composer, artist, focus, tags, goal }) => {
             setDraft({
+              title,
+              composer,
+              artist,
               focus,
               tags,
               goal,
@@ -65,6 +101,8 @@ const Index = () => {
 
       {phase === "practice" && draft && (
         <PracticeMode
+          title={draft.title}
+          byline={byline(draft)}
           focus={draft.focus}
           tags={draft.tags}
           goal={draft.goal}
@@ -79,24 +117,31 @@ const Index = () => {
       {phase === "reflect" && draft && (
         <Reflection
           durationSec={draft.durationSec}
+          tags={draft.tags}
           onSkip={() =>
             finalize({
               id: crypto.randomUUID(),
               startedAt: draft.startedAt,
               endedAt: Date.now(),
               durationSec: draft.durationSec,
+              title: draft.title,
+              composer: draft.composer,
+              artist: draft.artist,
               focus: draft.focus,
               tags: draft.tags,
               goal: draft.goal || undefined,
               notes: draft.notes,
             })
           }
-          onSave={({ improved, needsWork, rating }) =>
+          onSave={({ improved, needsWork, rating, tagRatings }) =>
             finalize({
               id: crypto.randomUUID(),
               startedAt: draft.startedAt,
               endedAt: Date.now(),
               durationSec: draft.durationSec,
+              title: draft.title,
+              composer: draft.composer,
+              artist: draft.artist,
               focus: draft.focus,
               tags: draft.tags,
               goal: draft.goal || undefined,
@@ -104,6 +149,7 @@ const Index = () => {
               improved,
               needsWork,
               rating,
+              tagRatings,
             })
           }
         />
