@@ -10,15 +10,25 @@ const COMMON_INSTRUMENTS = [
   "Piano", "Violin", "Cello", "Guitar", "Voice", "Flute", "Clarinet", "Saxophone", "Drums", "Bass",
 ];
 
+const GENRES: { value: Genre; label: string; hint: string }[] = [
+  { value: "classical", label: "Classical", hint: "Pieces by composer — Bach, Debussy, Brahms…" },
+  { value: "jazz", label: "Jazz", hint: "Standards, improvisation, swing…" },
+  { value: "rock", label: "Rock", hint: "Riffs, songs, bands…" },
+  { value: "pop", label: "Pop", hint: "Songs, chord progressions, hooks…" },
+  { value: "folk", label: "Folk", hint: "Traditional songs, fingerstyle…" },
+];
+
 export const Onboarding = ({ onComplete }: Props) => {
   const [step, setStep] = useState<0 | 1>(0);
   const [instrument, setInstrument] = useState("");
-  const [genre, setGenre] = useState<Genre | null>(null);
+  const [ownLabel, setOwnLabel] = useState("");
+  const [showOwn, setShowOwn] = useState(false);
 
-  const finish = (g: Genre) => {
+  const finish = (g: Genre, label?: string) => {
     onComplete({
       instrument: instrument.trim(),
       genre: g,
+      genreLabel: label,
       createdAt: Date.now(),
     });
   };
@@ -76,25 +86,45 @@ export const Onboarding = ({ onComplete }: Props) => {
         )}
 
         {step === 1 && (
-          <div className="space-y-4 animate-fade-in flex-1">
-            <button
-              onClick={() => { setGenre("classical"); finish("classical"); }}
-              className="w-full text-left rounded-lg border border-border hover:border-ink/40 p-5 transition group bg-card/40"
-            >
-              <p className="font-serif text-2xl font-light text-ink">Classical</p>
-              <p className="text-sm text-ink-soft mt-1 font-serif italic">
-                Pieces by composer — Bach, Debussy, Brahms…
-              </p>
-            </button>
-            <button
-              onClick={() => { setGenre("other"); finish("other"); }}
-              className="w-full text-left rounded-lg border border-border hover:border-ink/40 p-5 transition group bg-card/40"
-            >
-              <p className="font-serif text-2xl font-light text-ink">Other</p>
-              <p className="text-sm text-ink-soft mt-1 font-serif italic">
-                Songs by artist — jazz, rock, pop, folk, your own…
-              </p>
-            </button>
+          <div className="space-y-3 animate-fade-in flex-1">
+            {GENRES.map((g) => (
+              <button
+                key={g.value}
+                onClick={() => finish(g.value)}
+                className="w-full text-left rounded-lg border border-border hover:border-ink/40 p-4 transition bg-card/40"
+              >
+                <p className="font-serif text-xl font-light text-ink">{g.label}</p>
+                <p className="text-xs text-ink-soft mt-1 font-serif italic">{g.hint}</p>
+              </button>
+            ))}
+
+            {!showOwn ? (
+              <button
+                onClick={() => setShowOwn(true)}
+                className="w-full text-left rounded-lg border border-dashed border-border hover:border-ink/40 p-4 transition bg-card/20"
+              >
+                <p className="font-serif text-xl font-light text-ink">Your own…</p>
+                <p className="text-xs text-ink-soft mt-1 font-serif italic">Name your style.</p>
+              </button>
+            ) : (
+              <div className="rounded-lg border border-border p-4 bg-card/40 space-y-3">
+                <input
+                  autoFocus
+                  value={ownLabel}
+                  onChange={(e) => setOwnLabel(e.target.value)}
+                  placeholder="e.g. Bluegrass, Flamenco, Worship…"
+                  className="w-full bg-transparent border-b border-border focus:border-ink outline-none py-2 font-serif text-lg placeholder:text-muted-foreground/60 placeholder:italic"
+                />
+                <button
+                  disabled={!ownLabel.trim()}
+                  onClick={() => finish("own", ownLabel.trim())}
+                  className="w-full bg-ink text-paper rounded-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-30 hover:opacity-90 transition"
+                >
+                  Continue <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
             <button
               onClick={() => setStep(0)}
               className="text-xs text-muted-foreground hover:text-ink transition mt-4"

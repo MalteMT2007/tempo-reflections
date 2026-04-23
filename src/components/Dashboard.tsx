@@ -1,5 +1,5 @@
-import { Session, computeStats, formatMinutes } from "@/lib/storage";
-import { Flame, Clock } from "lucide-react";
+import { Session, computeStats, computePieceStats, formatMinutes } from "@/lib/storage";
+import { Flame, Clock, Music2 } from "lucide-react";
 
 type Props = {
   sessions: Session[];
@@ -23,6 +23,7 @@ const relativeDay = (ts: number) => {
 
 export const Dashboard = ({ sessions, onStart }: Props) => {
   const stats = computeStats(sessions);
+  const pieces = computePieceStats(sessions);
   const maxBar = Math.max(...stats.last7.map((d) => d.total), 1);
 
   return (
@@ -86,8 +87,44 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
           </div>
         </section>
 
+        {/* Your pieces */}
+        {pieces.length > 0 && (
+          <section className="mb-8 animate-fade-in" style={{ animationDelay: "180ms" }}>
+            <div className="flex items-baseline justify-between mb-4">
+              <h2 className="font-serif text-2xl font-light text-ink">Your pieces</h2>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {pieces.length} {pieces.length === 1 ? "piece" : "pieces"}
+              </span>
+            </div>
+            <ul className="space-y-2">
+              {pieces.slice(0, 6).map((p) => (
+                <li
+                  key={p.key}
+                  className="rounded-lg border border-border bg-card/40 p-4 flex items-center gap-3"
+                >
+                  <div className="h-9 w-9 rounded-full border border-border flex items-center justify-center shrink-0">
+                    <Music2 className="h-4 w-4 text-ink-soft" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-serif text-base text-ink truncate leading-tight">{p.title}</p>
+                    {p.byline && (
+                      <p className="font-serif italic text-xs text-ink-soft truncate">{p.byline}</p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-serif text-sm text-ink tabular">{formatMinutes(p.totalSec)}</p>
+                    <p className="text-[10px] text-muted-foreground tabular">
+                      {p.sessions} {p.sessions === 1 ? "session" : "sessions"}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* History */}
-        <section className="animate-fade-in" style={{ animationDelay: "200ms" }}>
+        <section className="animate-fade-in" style={{ animationDelay: "220ms" }}>
           <h2 className="font-serif text-2xl font-light text-ink mb-4">Recent sessions</h2>
           {sessions.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-border rounded-lg">
@@ -121,9 +158,6 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
                       <span className="italic font-serif text-ink-soft truncate">{s.tags.join(" · ")}</span>
                     )}
                   </div>
-                  {s.focus && s.title && (
-                    <p className="mt-1 text-xs text-ink-soft font-serif italic truncate">"{s.focus}"</p>
-                  )}
                   {(s.improved || s.needsWork) && (
                     <div className="mt-2 pl-3 border-l-2 border-sepia/40 space-y-0.5">
                       {s.improved && (
