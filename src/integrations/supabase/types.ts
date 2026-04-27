@@ -14,16 +14,174 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ensemble_members: {
+        Row: {
+          ensemble_id: string
+          joined_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          ensemble_id: string
+          joined_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          ensemble_id?: string
+          joined_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ensemble_members_ensemble_id_fkey"
+            columns: ["ensemble_id"]
+            isOneToOne: false
+            referencedRelation: "ensembles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ensembles: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          status: Database["public"]["Enums"]["friendship_status"]
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          status?: Database["public"]["Enums"]["friendship_status"]
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          status?: Database["public"]["Enums"]["friendship_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      practice_sessions: {
+        Row: {
+          byline: string | null
+          created_at: string
+          duration_sec: number
+          ended_at: string | null
+          id: string
+          started_at: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          byline?: string | null
+          created_at?: string
+          duration_sec?: number
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          byline?: string | null
+          created_at?: string
+          duration_sec?: number
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          genre: string | null
+          genre_label: string | null
+          id: string
+          instrument: string | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          genre?: string | null
+          genre_label?: string | null
+          id: string
+          instrument?: string | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          genre?: string | null
+          genre_label?: string | null
+          id?: string
+          instrument?: string | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      is_ensemble_member: {
+        Args: { _ensemble: string; _user: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      friendship_status: "pending" | "accepted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +308,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      friendship_status: ["pending", "accepted"],
+    },
   },
 } as const
