@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, X, Plus } from "lucide-react";
+import { ArrowRight, X, Plus, Music2 } from "lucide-react";
 import { Genre, isClassicalGenre } from "@/lib/storage";
 import { searchClassicalPieces, PieceSuggestion } from "@/lib/pieceSearch";
 
+type RecentPiece = { title: string; byline: string };
+
 type Props = {
   genre: Genre;
+  recentPieces?: RecentPiece[];
+  prefill?: { title: string; byline: string };
   onStart: (data: {
     title: string;
     composer?: string;
@@ -18,9 +22,9 @@ type Props = {
 
 const SUGGESTED_TAGS = ["technique", "scales", "repertoire", "sight-reading", "etudes", "improv", "tone", "rhythm", "dynamics", "intonation"];
 
-export const SessionSetup = ({ genre, onStart, onCancel }: Props) => {
-  const [title, setTitle] = useState("");
-  const [byline, setByline] = useState(""); // composer or artist
+export const SessionSetup = ({ genre, recentPieces = [], prefill, onStart, onCancel }: Props) => {
+  const [title, setTitle] = useState(prefill?.title ?? "");
+  const [byline, setByline] = useState(prefill?.byline ?? ""); // composer or artist
   const [tags, setTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
   const [goal, setGoal] = useState("");
