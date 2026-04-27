@@ -85,12 +85,20 @@ const Index = () => {
 
   return (
     <main className="min-h-screen">
-      <Dashboard sessions={sessions} onStart={() => setPhase("setup")} />
+      <Dashboard
+        sessions={sessions}
+        onStart={(r) => {
+          setResume(r ?? null);
+          setPhase("setup");
+        }}
+      />
 
       {phase === "setup" && (
         <SessionSetup
           genre={profile.genre}
-          onCancel={() => setPhase("dashboard")}
+          recentPieces={recentPieces}
+          prefill={resume ?? undefined}
+          onCancel={() => { setResume(null); setPhase("dashboard"); }}
           onStart={({ title, composer, artist, focus, tags, goal }) => {
             setDraft({
               title,
