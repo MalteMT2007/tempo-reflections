@@ -1,9 +1,10 @@
 import { Session, computeStats, computePieceStats, formatMinutes } from "@/lib/storage";
-import { Flame, Clock, Music2 } from "lucide-react";
+import { Flame, Clock, Music2, Users, ArrowRight, Play, Sparkles } from "lucide-react";
+import { useState } from "react";
 
 type Props = {
   sessions: Session[];
-  onStart: () => void;
+  onStart: (resume?: { title: string; byline: string }) => void;
 };
 
 const dayLabel = (ts: number) => {
@@ -25,9 +26,12 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
   const stats = computeStats(sessions);
   const pieces = computePieceStats(sessions);
   const maxBar = Math.max(...stats.last7.map((d) => d.total), 1);
+  const [ensembleOpen, setEnsembleOpen] = useState(false);
+
+  const recentPiece = pieces[0];
 
   return (
-    <div className="min-h-screen pb-32">
+    <div className="min-h-screen pb-36">
       <div className="max-w-md mx-auto px-6 pt-12">
         {/* Header */}
         <header className="mb-10 animate-fade-in">
@@ -38,7 +42,9 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
           <p className="font-serif italic text-ink-soft mt-3 text-lg">
             {sessions.length === 0
               ? "Your studio awaits."
-              : "What will you discover today?"}
+              : recentPiece
+                ? `Picking up where you left off?`
+                : "What will you discover today?"}
           </p>
         </header>
 
@@ -87,44 +93,89 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
           </div>
         </section>
 
-        {/* Your pieces */}
+        {/* Session library */}
         {pieces.length > 0 && (
           <section className="mb-8 animate-fade-in" style={{ animationDelay: "180ms" }}>
             <div className="flex items-baseline justify-between mb-4">
-              <h2 className="font-serif text-2xl font-light text-ink">Your pieces</h2>
+              <h2 className="font-serif text-2xl font-light text-ink">Session library</h2>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 {pieces.length} {pieces.length === 1 ? "piece" : "pieces"}
               </span>
             </div>
+            <p className="font-serif italic text-xs text-ink-soft mb-4">
+              Tap a piece to continue practicing it.
+            </p>
             <ul className="space-y-2">
-              {pieces.slice(0, 6).map((p) => (
-                <li
-                  key={p.key}
-                  className="rounded-lg border border-border bg-card/40 p-4 flex items-center gap-3"
-                >
-                  <div className="h-9 w-9 rounded-full border border-border flex items-center justify-center shrink-0">
-                    <Music2 className="h-4 w-4 text-ink-soft" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-serif text-base text-ink truncate leading-tight">{p.title}</p>
-                    {p.byline && (
-                      <p className="font-serif italic text-xs text-ink-soft truncate">{p.byline}</p>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-serif text-sm text-ink tabular">{formatMinutes(p.totalSec)}</p>
-                    <p className="text-[10px] text-muted-foreground tabular">
-                      {p.sessions} {p.sessions === 1 ? "session" : "sessions"}
-                    </p>
-                  </div>
+              {pieces.slice(0, 8).map((p) => (
+                <li key={p.key}>
+                  <button
+                    onClick={() => onStart({ title: p.title, byline: p.byline })}
+                    className="group w-full text-left rounded-lg border border-border bg-card/40 p-4 flex items-center gap-3 hover:border-ink/40 hover:bg-card transition-all"
+                  >
+                    <div className="h-10 w-10 rounded-full border border-border flex items-center justify-center shrink-0 group-hover:bg-ink group-hover:border-ink transition-colors">
+                      <Play className="h-3.5 w-3.5 text-ink-soft group-hover:text-paper translate-x-[1px]" fill="currentColor" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-serif text-base text-ink truncate leading-tight">{p.title}</p>
+                      {p.byline && (
+                        <p className="font-serif italic text-xs text-ink-soft truncate">{p.byline}</p>
+                      )}
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+                        {relativeDay(p.lastAt)} · {p.sessions} {p.sessions === 1 ? "session" : "sessions"} · {formatMinutes(p.totalSec)}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-ink group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </button>
                 </li>
               ))}
             </ul>
           </section>
         )}
 
+        {/* Ensembles (coming soon) */}
+        <section className="mb-8 animate-fade-in" style={{ animationDelay: "200ms" }}>
+          <button
+            onClick={() => setEnsembleOpen((v) => !v)}
+            className="w-full rounded-lg border border-dashed border-border bg-card/30 p-4 flex items-center gap-3 hover:border-ink/30 transition-all text-left"
+          >
+            <div className="h-10 w-10 rounded-full border border-border flex items-center justify-center shrink-0">
+              <Users className="h-4 w-4 text-ink-soft" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-serif text-base text-ink leading-tight">Ensembles</p>
+              <p className="font-serif italic text-xs text-ink-soft">
+                Share scores & rehearsals with your group
+              </p>
+            </div>
+            <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground border border-border rounded-full px-2 py-0.5 shrink-0">
+              Soon
+            </span>
+          </button>
+          {ensembleOpen && (
+            <div className="mt-2 rounded-lg border border-border bg-card/40 p-4 animate-fade-in">
+              <p className="font-serif italic text-sm text-ink-soft mb-3">
+                Coming soon — a shared space for your orchestra, quartet, or band:
+              </p>
+              <ul className="space-y-2 text-sm text-ink-soft">
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-3 w-3 mt-1 text-accent shrink-0" />
+                  <span>Upload and annotate shared scores</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-3 w-3 mt-1 text-accent shrink-0" />
+                  <span>Publish rehearsal & concert dates to a shared calendar</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Sparkles className="h-3 w-3 mt-1 text-accent shrink-0" />
+                  <span>See what fellow members are practicing</span>
+                </li>
+              </ul>
+            </div>
+          )}
+        </section>
+
         {/* History */}
-        <section className="animate-fade-in" style={{ animationDelay: "220ms" }}>
+        <section className="animate-fade-in" style={{ animationDelay: "240ms" }}>
           <h2 className="font-serif text-2xl font-light text-ink mb-4">Recent sessions</h2>
           {sessions.length === 0 ? (
             <div className="text-center py-12 border border-dashed border-border rounded-lg">
@@ -180,14 +231,21 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
         </section>
       </div>
 
-      {/* Floating start button */}
-      <button
-        onClick={onStart}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-ink text-paper rounded-full px-8 py-4 shadow-elev hover:opacity-90 transition flex items-center gap-3 group"
-      >
-        <span className="h-2 w-2 rounded-full bg-paper animate-pulse-soft" />
-        <span className="font-medium tracking-wide">Begin a session</span>
-      </button>
+      {/* Floating start button — refined */}
+      <div className="fixed bottom-6 left-0 right-0 flex justify-center pointer-events-none z-40">
+        <button
+          onClick={() => onStart()}
+          className="pointer-events-auto group relative overflow-hidden rounded-full bg-ink text-paper pl-2 pr-7 py-2 shadow-elev hover:shadow-xl transition-all duration-300 flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <span className="h-11 w-11 rounded-full bg-paper/10 flex items-center justify-center backdrop-blur-sm border border-paper/15 group-hover:bg-paper/20 transition-colors">
+            <Play className="h-4 w-4 text-paper translate-x-[1px]" fill="currentColor" />
+          </span>
+          <span className="flex flex-col items-start leading-tight pr-1">
+            <span className="text-[9px] uppercase tracking-[0.3em] text-paper/60">Practice</span>
+            <span className="font-serif text-base font-normal">Begin a session</span>
+          </span>
+        </button>
+      </div>
     </div>
   );
 };
