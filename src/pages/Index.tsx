@@ -11,9 +11,12 @@ import {
   saveProfile,
   loadSessions,
   saveSession,
+  computePieceStats,
 } from "@/lib/storage";
 
 type Phase = "dashboard" | "setup" | "practice" | "reflect";
+
+type Resume = { title: string; byline: string } | null;
 
 type Draft = {
   title: string;
