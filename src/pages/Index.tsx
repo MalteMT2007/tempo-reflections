@@ -13,9 +13,10 @@ import {
   saveSession,
   computePieceStats,
 } from "@/lib/storage";
+import { useAuth } from "@/contexts/AuthContext";
+import { getProfile, updateProfile, recordSession } from "@/lib/api";
 
 type Phase = "dashboard" | "setup" | "practice" | "reflect";
-
 type Resume = { title: string; byline: string } | null;
 
 type Draft = {
@@ -31,6 +32,7 @@ type Draft = {
 };
 
 const Index = () => {
+  const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>("dashboard");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -43,9 +45,39 @@ const Index = () => {
     byline: p.byline,
   }));
 
+  // Load profile: try Cloud first, fall back to local
   useEffect(() => {
-    setProfile(loadProfile());
-    setProfileLoaded(true);
+    let cancelled = false;
+    (async () => {
+      const local = loadProfile();
+      if (user) {
+        try {
+          const db = await getProfile(user.id);
+          if (db?.instrument && db?.genre) {
+            const merged: Profile = {
+              instrument: db.instrument,
+              genre: (db.genre as Profile["genre"]) ?? "classical",
+              genreLabel: db.genre_label ?? undefined,
+              createdAt: local?.createdAt ?? Date.now(),
+            };
+            if (!cancelled) {
+              saveProfile(merged);
+              setProfile(merged);
+              setProfileLoaded(true);
+            }
+            return;
+          }
+        } catch { /* ignore */ }
+      }
+      if (!cancelled) {
+        setProfile(local);
+        setProfileLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  useEffect(() => {
     setSessions(loadSessions());
     document.title = "Practice — A companion for musicians";
     const meta = document.querySelector('meta[name="description"]');
@@ -62,6 +94,16 @@ const Index = () => {
   const finalize = (s: Session) => {
     saveSession(s);
     setSessions(loadSessions());
+    // Sync to cloud (fire and forget — public visibility is piece + time only)
+    if (user) {
+      recordSession({
+        title: s.title,
+        byline: s.composer || s.artist,
+        duration_sec: s.durationSec,
+        started_at: s.startedAt,
+        ended_at: s.endedAt,
+      }).catch(() => {});
+    }
     setDraft(null);
     setPhase("dashboard");
   };
@@ -75,6 +117,13 @@ const Index = () => {
           onComplete={(p) => {
             saveProfile(p);
             setProfile(p);
+            if (user) {
+              updateProfile(user.id, {
+                instrument: p.instrument,
+                genre: p.genre,
+                genre_label: p.genreLabel ?? null,
+              }).catch(() => {});
+            }
           }}
         />
       </main>
