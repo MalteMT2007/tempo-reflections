@@ -1,6 +1,7 @@
 import { Session, computeStats, computePieceStats, formatMinutes } from "@/lib/storage";
 import { Flame, Clock, Music2, Users, ArrowRight, Play, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { AppMenu } from "@/components/AppMenu";
 
 type Props = {
   sessions: Session[];
@@ -32,6 +33,7 @@ export const Dashboard = ({ sessions, onStart }: Props) => {
 
   return (
     <div className="min-h-screen pb-36">
+      <AppMenu />
       <div className="max-w-md mx-auto px-6 pt-12">
         {/* Header */}
         <header className="mb-10 animate-fade-in">
