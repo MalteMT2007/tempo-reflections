@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, X, Plus } from "lucide-react";
+import { ArrowRight, X, Plus, Music2 } from "lucide-react";
 import { Genre, isClassicalGenre } from "@/lib/storage";
 import { searchClassicalPieces, PieceSuggestion } from "@/lib/pieceSearch";
 
+type RecentPiece = { title: string; byline: string };
+
 type Props = {
   genre: Genre;
+  recentPieces?: RecentPiece[];
+  prefill?: { title: string; byline: string };
   onStart: (data: {
     title: string;
     composer?: string;
@@ -18,9 +22,9 @@ type Props = {
 
 const SUGGESTED_TAGS = ["technique", "scales", "repertoire", "sight-reading", "etudes", "improv", "tone", "rhythm", "dynamics", "intonation"];
 
-export const SessionSetup = ({ genre, onStart, onCancel }: Props) => {
-  const [title, setTitle] = useState("");
-  const [byline, setByline] = useState(""); // composer or artist
+export const SessionSetup = ({ genre, recentPieces = [], prefill, onStart, onCancel }: Props) => {
+  const [title, setTitle] = useState(prefill?.title ?? "");
+  const [byline, setByline] = useState(prefill?.byline ?? ""); // composer or artist
   const [tags, setTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState("");
   const [goal, setGoal] = useState("");
@@ -89,16 +93,52 @@ export const SessionSetup = ({ genre, onStart, onCancel }: Props) => {
           </button>
         </div>
 
-        <div className="mt-8 mb-10 animate-fade-in">
+        <div className="mt-8 mb-8 animate-fade-in">
           <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-3">Begin a session</p>
           <h1 className="font-serif text-4xl font-light leading-tight text-balance text-ink">
             What are you working on?
           </h1>
         </div>
 
+        {recentPieces.length > 0 && (
+          <div className="mb-8 animate-fade-in" style={{ animationDelay: "60ms" }}>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-3">Continue practicing</p>
+            <div className="flex gap-2 overflow-x-auto -mx-6 px-6 pb-1">
+              {recentPieces.map((p, i) => {
+                const active = title.trim().toLowerCase() === p.title.toLowerCase()
+                  && byline.trim().toLowerCase() === p.byline.toLowerCase();
+                return (
+                  <button
+                    key={i}
+                    onClick={() => { setTitle(p.title); setByline(p.byline); }}
+                    className={`shrink-0 rounded-lg border px-3 py-2 flex items-center gap-2 max-w-[220px] transition-all ${
+                      active
+                        ? "border-ink bg-ink text-paper"
+                        : "border-border bg-card/40 hover:border-ink/40"
+                    }`}
+                  >
+                    <Music2 className={`h-3.5 w-3.5 shrink-0 ${active ? "text-paper" : "text-ink-soft"}`} />
+                    <span className="flex flex-col items-start min-w-0 leading-tight">
+                      <span className={`font-serif text-sm truncate max-w-[170px] ${active ? "text-paper" : "text-ink"}`}>
+                        {p.title}
+                      </span>
+                      {p.byline && (
+                        <span className={`font-serif italic text-[10px] truncate max-w-[170px] ${active ? "text-paper/70" : "text-ink-soft"}`}>
+                          {p.byline}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-7 animate-fade-in" style={{ animationDelay: "120ms" }}>
           {/* Title with autocomplete */}
           <div className="relative">
+
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-2">{titleLabel}</p>
             <input
               autoFocus

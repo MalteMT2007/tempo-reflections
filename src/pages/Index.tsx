@@ -11,9 +11,12 @@ import {
   saveProfile,
   loadSessions,
   saveSession,
+  computePieceStats,
 } from "@/lib/storage";
 
 type Phase = "dashboard" | "setup" | "practice" | "reflect";
+
+type Resume = { title: string; byline: string } | null;
 
 type Draft = {
   title: string;
@@ -33,6 +36,12 @@ const Index = () => {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [resume, setResume] = useState<Resume>(null);
+
+  const recentPieces = computePieceStats(sessions).slice(0, 5).map((p) => ({
+    title: p.title,
+    byline: p.byline,
+  }));
 
   useEffect(() => {
     setProfile(loadProfile());
@@ -76,12 +85,20 @@ const Index = () => {
 
   return (
     <main className="min-h-screen">
-      <Dashboard sessions={sessions} onStart={() => setPhase("setup")} />
+      <Dashboard
+        sessions={sessions}
+        onStart={(r) => {
+          setResume(r ?? null);
+          setPhase("setup");
+        }}
+      />
 
       {phase === "setup" && (
         <SessionSetup
           genre={profile.genre}
-          onCancel={() => setPhase("dashboard")}
+          recentPieces={recentPieces}
+          prefill={resume ?? undefined}
+          onCancel={() => { setResume(null); setPhase("dashboard"); }}
           onStart={({ title, composer, artist, focus, tags, goal }) => {
             setDraft({
               title,
