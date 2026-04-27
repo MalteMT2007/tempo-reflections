@@ -36,6 +36,12 @@ const Index = () => {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [resume, setResume] = useState<Resume>(null);
+
+  const recentPieces = computePieceStats(sessions).slice(0, 5).map((p) => ({
+    title: p.title,
+    byline: p.byline,
+  }));
 
   useEffect(() => {
     setProfile(loadProfile());
