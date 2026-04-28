@@ -26,6 +26,7 @@ import {
   type Score,
 } from "@/lib/scores";
 import { useAuth } from "@/contexts/AuthContext";
+import { DrawingCanvas, type CompletedStroke } from "@/components/drawing/DrawingCanvas";
 
 type Tool = "pan" | "draw" | "text" | "erase";
 
@@ -121,10 +122,8 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
 
       const canvas = canvasRef.current!;
       const overlay = overlayRef.current!;
-      const draw = drawRef.current!;
       setCanvasSize(canvas);
       setCanvasSize(overlay);
-      setCanvasSize(draw);
       setRenderSize({ w: viewport.width, h: viewport.height });
 
       const ctx = canvas.getContext("2d")!;
@@ -178,35 +177,17 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     }
   }, [annotations, pageIndex, renderSize, showOthers, user?.id]);
 
-  // Drawing handlers
-  const drawingRef = useRef<{ pts: { x: number; y: number }[] } | null>(null);
-
-  const getRelative = (e: PointerEvent | React.PointerEvent) => {
-    const overlay = overlayRef.current!;
-    const r = overlay.getBoundingClientRect();
-    return {
-      x: (e.clientX - r.left) / r.width,
-      y: (e.clientY - r.top) / r.height,
-    };
+  // Pointer handlers for non-draw tools (text/erase). Draw uses DrawingCanvas.
+  const getRelative = (e: React.PointerEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
   };
 
-  const onPointerDown = async (e: React.PointerEvent) => {
-    if (tool === "pan") return;
-    (e.target as Element).setPointerCapture(e.pointerId);
+  const onAuxPointerDown = async (e: React.PointerEvent) => {
+    if (tool === "pan" || tool === "draw") return;
     const rel = getRelative(e);
 
-    if (tool === "draw") {
-      drawingRef.current = { pts: [rel] };
-      const ctx = drawRef.current!.getContext("2d")!;
-      const dpr = window.devicePixelRatio || 1;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(rel.x * renderSize.w, rel.y * renderSize.h);
-    } else if (tool === "text") {
+    if (tool === "text") {
       const txt = window.prompt("Add note");
       if (!txt) return;
       const data: TextData = { x: rel.x, y: rel.y, text: txt, color, size: 16 };
@@ -221,7 +202,6 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       setUndoStack((s) => [...s, ann.id]);
       setRedoStack([]);
     } else if (tool === "erase") {
-      // Delete topmost own annotation under the point
       const px = rel.x * renderSize.w;
       const py = rel.y * renderSize.h;
       const target = [...annotations].reverse().find((a) => {
@@ -248,24 +228,18 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     }
   };
 
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (tool !== "draw" || !drawingRef.current) return;
-    const rel = getRelative(e);
-    drawingRef.current.pts.push(rel);
-    const ctx = drawRef.current!.getContext("2d")!;
-    ctx.lineTo(rel.x * renderSize.w, rel.y * renderSize.h);
-    ctx.stroke();
-  };
-
-  const onPointerUp = async () => {
-    if (tool !== "draw" || !drawingRef.current) return;
-    const pts = drawingRef.current.pts;
-    drawingRef.current = null;
-    // clear local draw layer
-    const ctx = drawRef.current!.getContext("2d")!;
-    ctx.clearRect(0, 0, drawRef.current!.width, drawRef.current!.height);
-    if (pts.length < 2) return;
-    const data: StrokeData = { points: pts, color, width };
+  const handleStrokeComplete = async (s: CompletedStroke) => {
+    if (s.points.length < 2 || renderSize.w === 0) return;
+    // Convert filtered (px) points to normalized 0..1 for storage.
+    const pts = s.points.map((p) => ({ x: p.x / renderSize.w, y: p.y / renderSize.h }));
+    // Average engine width * scale -> stored width.
+    const avgW =
+      s.segments.reduce((a, seg) => a + seg.width, 0) / Math.max(1, s.segments.length);
+    const data: StrokeData = {
+      points: pts,
+      color: s.color,
+      width: Math.max(1, avgW * (s.widthScale || 1)),
+    };
     const ann = await createAnnotation({
       score_id: score.id,
       page_index: pageIndex,
@@ -274,9 +248,10 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       session_id: sessionId ?? null,
     });
     setAnnotations((a) => [...a, ann]);
-    setUndoStack((s) => [...s, ann.id]);
+    setUndoStack((st) => [...st, ann.id]);
     setRedoStack([]);
   };
+
 
   const undo = async () => {
     const last = undoStack[undoStack.length - 1];
@@ -367,15 +342,26 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
         <div className="relative shadow-elev bg-paper" style={{ width: renderSize.w || undefined, height: renderSize.h || undefined }}>
           <canvas ref={canvasRef} className="block" />
           <canvas ref={overlayRef} className="absolute inset-0 pointer-events-none" />
-          <canvas
-            ref={drawRef}
-            className="absolute inset-0"
-            style={{ touchAction: tool === "pan" ? "auto" : "none", cursor: tool === "text" ? "text" : tool === "erase" ? "crosshair" : "crosshair" }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-          />
+          {tool === "draw" ? (
+            <DrawingCanvas
+              width={renderSize.w}
+              height={renderSize.h}
+              color={color}
+              widthScale={width / 4}
+              onStrokeComplete={handleStrokeComplete}
+              className="absolute inset-0"
+            />
+          ) : tool === "pan" ? null : (
+            <div
+              ref={drawRef as unknown as React.RefObject<HTMLDivElement>}
+              className="absolute inset-0"
+              style={{
+                touchAction: "none",
+                cursor: tool === "text" ? "text" : "crosshair",
+              }}
+              onPointerDown={onAuxPointerDown}
+            />
+          )}
         </div>
       </div>
 
