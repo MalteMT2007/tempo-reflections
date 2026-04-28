@@ -148,6 +148,72 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     listAnnotations(score.id).then(setAnnotations).catch(() => {});
   }, [score.id]);
 
+  // ---- Realtime: live annotations from collaborators ----
+  useEffect(() => {
+    const channel = supabase
+      .channel(`score-annotations:${score.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "score_annotations", filter: `score_id=eq.${score.id}` },
+        (payload) => {
+          const ann = payload.new as Annotation;
+          setAnnotations((prev) => (prev.some((a) => a.id === ann.id) ? prev : [...prev, ann]));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "score_annotations", filter: `score_id=eq.${score.id}` },
+        (payload) => {
+          const oldId = (payload.old as { id?: string })?.id;
+          if (!oldId) return;
+          setAnnotations((prev) => prev.filter((a) => a.id !== oldId));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "score_annotations", filter: `score_id=eq.${score.id}` },
+        (payload) => {
+          const ann = payload.new as Annotation;
+          setAnnotations((prev) => prev.map((a) => (a.id === ann.id ? ann : a)));
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [score.id]);
+
+  // ---- Presence: who is viewing this score right now ----
+  const [me, setMe] = useState<PresenceUser | null>(null);
+  useEffect(() => {
+    if (!user?.id) {
+      setMe(null);
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("username, display_name, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setMe({
+          user_id: user.id,
+          username: data?.username ?? null,
+          display_name: data?.display_name ?? null,
+          avatar_url: data?.avatar_url ?? null,
+          online_at: new Date().toISOString(),
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+  const presenceUsers = useScorePresence(score.id, me);
+
+  const isScoreOwner = user?.id === score.owner_id;
+
   // Render the current page
   useEffect(() => {
     const pdf = pdfRef.current;
