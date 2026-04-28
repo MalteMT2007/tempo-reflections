@@ -1,7 +1,6 @@
 import { Session, computeStats, computePieceStats, formatMinutes } from "@/lib/storage";
 import { Flame, Clock, Music2, Users, ArrowRight, Play, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { AppMenu } from "@/components/AppMenu";
 
 type Props = {
   sessions: Session[];
