@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Inbox, Calendar, Mic2, Clock3, Flame, ChevronRight, Play, FileMusic } from "lucide-react";
+import { Inbox, Calendar, Mic2, Clock3, Flame, ChevronRight, Play, FileMusic, Library as LibraryIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyUpcomingEvents, MyUpcomingEvent } from "@/lib/ensembles";
@@ -125,133 +125,148 @@ const Home = () => {
         />
       )}
 
-      {/* Landing overlay: tinted/blurred backdrop + welcome pills */}
-      {overlayVisible && (
-        <div className="fixed inset-0 z-[60] animate-fade-in">
-          {/* Backdrop blur + tint over the score */}
-          <button
-            type="button"
-            aria-label="Dismiss welcome"
-            onClick={dismissOverlay}
-            className="absolute inset-0 w-full h-full bg-background/55 backdrop-blur-md"
-          />
+      {/* Landing overlay: heavily blurred + darkened backdrop, smooth fade */}
+      <div
+        className={`fixed inset-0 z-[60] transition-opacity duration-500 ease-out ${
+          overlayVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        aria-hidden={!overlayVisible}
+      >
+        {/* Backdrop: stronger tint + heavier blur for readability */}
+        <button
+          type="button"
+          aria-label="Dismiss welcome"
+          onClick={dismissOverlay}
+          className="absolute inset-0 w-full h-full bg-background/75 backdrop-blur-2xl backdrop-saturate-150"
+        />
+        {/* Subtle vignette for extra contrast */}
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(var(--background)/0.35)_100%)]" />
 
-          {/* Pills, vertically stacked, scrollable */}
-          <div className="relative h-full overflow-y-auto pointer-events-none">
-            <div
-              className="max-w-md mx-auto px-5 pb-32 flex flex-col gap-3 pointer-events-none"
-              style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)" }}
+        {/* Pills, vertically stacked */}
+        <div
+          className={`relative h-full overflow-y-auto pointer-events-none transition-all duration-500 ease-out ${
+            overlayVisible ? "translate-y-0" : "translate-y-2"
+          }`}
+        >
+          <div
+            className="max-w-md mx-auto px-5 pb-32 flex flex-col gap-3 pointer-events-none"
+            style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)" }}
+          >
+            {/* Inbox pill */}
+            <Link
+              to="/inbox"
+              aria-label="Open inbox"
+              onClick={(e) => e.stopPropagation()}
+              className="pointer-events-auto fixed z-[61] h-10 w-10 grid place-items-center rounded-full spring-tap bg-background/40 backdrop-blur-2xl backdrop-saturate-150 border border-white/15 shadow-[0_4px_16px_-6px_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.18)] hover:bg-background/55 transition-colors"
+              style={{
+                top: "calc(env(safe-area-inset-top, 0px) + 14px)",
+                left: "calc(env(safe-area-inset-left, 0px) + 14px)",
+              }}
             >
-              {/* Inbox pill (top-left, kept) */}
-              <Link
-                to="/inbox"
-                aria-label="Open inbox"
-                onClick={(e) => e.stopPropagation()}
-                className="pointer-events-auto fixed z-[61] h-10 w-10 grid place-items-center rounded-full spring-tap bg-background/40 backdrop-blur-2xl backdrop-saturate-150 border border-white/15 shadow-[0_4px_16px_-6px_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.18)] hover:bg-background/55 transition-colors"
-                style={{
-                  top: "calc(env(safe-area-inset-top, 0px) + 14px)",
-                  left: "calc(env(safe-area-inset-left, 0px) + 14px)",
-                }}
-              >
-                <Inbox className="h-[16px] w-[16px] text-foreground" strokeWidth={1.8} />
-                {pending > 0 && (
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#FF3B30] ring-2 ring-background/60" />
-                )}
-              </Link>
-
-              {/* Greeting pill */}
-              <GlassPill onClick={(e) => e.stopPropagation()}>
-                <h1 className="text-[28px] sm:text-[32px] font-light tracking-tight leading-tight">
-                  Welcome back{greetingName ? `, ${greetingName}` : ""}.
-                </h1>
-                <p className="text-[14px] text-muted-foreground mt-1.5">
-                  A quiet overview of what's ahead.
-                </p>
-              </GlassPill>
-
-              {/* Recommended pieces pill */}
-              {recommended.length > 0 && (
-                <GlassPill onClick={(e) => e.stopPropagation()}>
-                  <SectionHeader icon={Play} label="Continue practicing" />
-                  <div className="mt-2 -mx-1 flex gap-2 overflow-x-auto pb-1">
-                    {recommended.slice(0, 6).map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => pickScore(s)}
-                        className={`shrink-0 w-40 text-left rounded-2xl border p-3 spring-tap transition-colors ${
-                          activeScore?.id === s.id
-                            ? "border-foreground/50 bg-foreground/5"
-                            : "border-border/60 bg-background/30 hover:bg-background/60"
-                        }`}
-                      >
-                        <div className="h-16 rounded-lg bg-muted/60 grid place-items-center mb-2">
-                          <FileMusic className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <p className="text-[13px] font-medium truncate">{s.title}</p>
-                        {s.composer && (
-                          <p className="text-[11.5px] text-muted-foreground truncate">{s.composer}</p>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  {activeScore && (
-                    <button
-                      onClick={dismissOverlay}
-                      className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-full bg-foreground text-background py-2 text-[13px] font-medium spring-tap"
-                    >
-                      <Play className="h-3.5 w-3.5" />
-                      Open {activeScore.title}
-                    </button>
-                  )}
-                </GlassPill>
+              <Inbox className="h-[16px] w-[16px] text-foreground" strokeWidth={1.8} />
+              {pending > 0 && (
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#FF3B30] ring-2 ring-background/60" />
               )}
+            </Link>
 
-              {/* Rehearsals pill */}
-              <GlassPill onClick={(e) => { e.stopPropagation(); nextRehearsal && navigate(`/ensembles/${nextRehearsal.ensemble_id}`); }}>
-                <SectionHeader icon={Calendar} label="Upcoming rehearsals" count={rehearsals.length} />
-                <p className="mt-1.5 text-[16px] font-medium truncate">
-                  {nextRehearsal ? fmtDate(nextRehearsal.starts_at) : "Nothing scheduled"}
-                </p>
-                {nextRehearsal && (
-                  <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">
-                    {nextRehearsal.ensemble_name} · {fmtTime(nextRehearsal.starts_at)}
-                  </p>
-                )}
-              </GlassPill>
-
-              {/* Concerts pill */}
-              <GlassPill onClick={(e) => { e.stopPropagation(); nextConcert && navigate(`/ensembles/${nextConcert.ensemble_id}`); }}>
-                <SectionHeader icon={Mic2} label="Upcoming concerts" count={concerts.length} />
-                <p className="mt-1.5 text-[16px] font-medium truncate">
-                  {nextConcert ? fmtDate(nextConcert.starts_at) : "Nothing scheduled"}
-                </p>
-                {nextConcert && (
-                  <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">
-                    {nextConcert.ensemble_name} · {fmtTime(nextConcert.starts_at)}
-                  </p>
-                )}
-              </GlassPill>
-
-              {/* Practice pill */}
-              <GlassPill onClick={(e) => { e.stopPropagation(); navigate("/library"); }}>
-                <SectionHeader icon={Clock3} label="Recent practice" />
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  <Stat label="Week" value={fmtHours(stats.data?.weeklySeconds ?? 0)} icon={Clock3} />
-                  <Stat label="Streak" value={`${stats.data?.streak ?? 0}d`} icon={Flame} />
-                  <Stat label="All time" value={fmtHours(stats.data?.totalSeconds ?? 0)} icon={Clock3} />
-                </div>
-                <p className="mt-2 text-[11.5px] text-muted-foreground">
-                  {totalSessions} session{totalSessions === 1 ? "" : "s"} logged
-                </p>
-              </GlassPill>
-
-              <p className="text-center text-[11.5px] text-muted-foreground/80 mt-2 pointer-events-none">
-                Tap the score to start reading.
+            {/* Greeting pill */}
+            <GlassPill onClick={(e) => e.stopPropagation()}>
+              <h1 className="text-[28px] sm:text-[32px] font-light tracking-tight leading-tight">
+                Welcome back{greetingName ? `, ${greetingName}` : ""}.
+              </h1>
+              <p className="text-[14px] text-muted-foreground mt-1.5">
+                A quiet overview of what's ahead.
               </p>
-            </div>
+            </GlassPill>
+
+            {/* Suggestions pill — clean, leads to library */}
+            {recommended.length > 0 && (
+              <GlassPill onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between">
+                  <SectionHeader icon={FileMusic} label="Suggested for you" />
+                  <button
+                    onClick={() => navigate("/library")}
+                    className="text-[11.5px] text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5 spring-tap"
+                  >
+                    Library <ChevronRight className="h-3 w-3" />
+                  </button>
+                </div>
+                <ul className="mt-2 divide-y divide-border/40">
+                  {recommended.slice(0, 3).map((s) => (
+                    <li key={s.id}>
+                      <button
+                        onClick={() => pickScore(s)}
+                        className="w-full flex items-center gap-3 py-2.5 text-left spring-tap group"
+                      >
+                        <div className="h-9 w-9 shrink-0 rounded-lg bg-muted/60 grid place-items-center">
+                          <FileMusic className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[14px] font-medium truncate leading-tight">{s.title}</p>
+                          {s.composer && (
+                            <p className="text-[12px] text-muted-foreground truncate">{s.composer}</p>
+                          )}
+                        </div>
+                        <Play className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => navigate("/library")}
+                  className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-full bg-foreground/10 hover:bg-foreground/15 text-foreground py-2 text-[12.5px] font-medium spring-tap transition-colors"
+                >
+                  <LibraryIcon className="h-3.5 w-3.5" />
+                  Browse your library
+                </button>
+              </GlassPill>
+            )}
+
+            {/* Rehearsals pill */}
+            <GlassPill onClick={(e) => { e.stopPropagation(); nextRehearsal && navigate(`/ensembles/${nextRehearsal.ensemble_id}`); }}>
+              <SectionHeader icon={Calendar} label="Upcoming rehearsals" count={rehearsals.length} />
+              <p className="mt-1.5 text-[16px] font-medium truncate">
+                {nextRehearsal ? fmtDate(nextRehearsal.starts_at) : "Nothing scheduled"}
+              </p>
+              {nextRehearsal && (
+                <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">
+                  {nextRehearsal.ensemble_name} · {fmtTime(nextRehearsal.starts_at)}
+                </p>
+              )}
+            </GlassPill>
+
+            {/* Concerts pill */}
+            <GlassPill onClick={(e) => { e.stopPropagation(); nextConcert && navigate(`/ensembles/${nextConcert.ensemble_id}`); }}>
+              <SectionHeader icon={Mic2} label="Upcoming concerts" count={concerts.length} />
+              <p className="mt-1.5 text-[16px] font-medium truncate">
+                {nextConcert ? fmtDate(nextConcert.starts_at) : "Nothing scheduled"}
+              </p>
+              {nextConcert && (
+                <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">
+                  {nextConcert.ensemble_name} · {fmtTime(nextConcert.starts_at)}
+                </p>
+              )}
+            </GlassPill>
+
+            {/* Practice pill */}
+            <GlassPill onClick={(e) => { e.stopPropagation(); navigate("/library"); }}>
+              <SectionHeader icon={Clock3} label="Recent practice" />
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                <Stat label="Week" value={fmtHours(stats.data?.weeklySeconds ?? 0)} icon={Clock3} />
+                <Stat label="Streak" value={`${stats.data?.streak ?? 0}d`} icon={Flame} />
+                <Stat label="All time" value={fmtHours(stats.data?.totalSeconds ?? 0)} icon={Clock3} />
+              </div>
+              <p className="mt-2 text-[11.5px] text-muted-foreground">
+                {totalSessions} session{totalSessions === 1 ? "" : "s"} logged
+              </p>
+            </GlassPill>
+
+            <p className="text-center text-[11.5px] text-muted-foreground/80 mt-2 pointer-events-none">
+              Tap the score to start reading.
+            </p>
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 };
