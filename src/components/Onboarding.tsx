@@ -38,7 +38,7 @@ export const Onboarding = ({ onComplete }: Props) => {
       <div className="max-w-md mx-auto px-6 pt-16 pb-12 min-h-screen flex flex-col">
         <div className="mb-10 animate-fade-in">
           <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">Welcome</p>
-          <h1 className="font-serif text-4xl font-light leading-tight text-balance text-ink">
+          <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight leading-none">
             {step === 0 ? "Which instrument do you play?" : "And what kind of music?"}
           </h1>
           <p className="font-serif italic text-ink-soft mt-3">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, UserPlus, Trash2, X, FileText, Calendar, MapPin, Music2, Mail, Link2 } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, UserPlus, Trash2, X, FileText, Calendar, MapPin, Music2, Mail, Link2, Info } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,18 @@ import {
   listProjects, createProject, updateProject, deleteProject,
   listEvents, createEvent, deleteEvent,
   listProjectScores, createProjectScore, deleteProjectScore, uploadProjectScoreFile, getProjectScoreSignedUrl,
-  listAssignments, assignScore, unassignScore,
-  Ensemble, Section, MemberRow, Invite, Project, EventRow, ProjectScore, Assignment, EnsembleRole, ProjectStatus, EventType,
+  listAssignments, assignScore, unassignScore, listProjectsAssignedToUser,
+  Ensemble, Section, MemberRow, Invite, Project, EventRow, ProjectScore, Assignment, EnsembleRole, ProjectStatus, EventType, EnsembleType,
 } from "@/lib/ensembles";
 import InviteMemberDialog from "@/components/ensemble/InviteMemberDialog";
 import { RoleBadge } from "@/components/ensemble/RoleBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+
+const TYPE_LABEL: Record<EnsembleType, string> = {
+  orchestra: "Orchestra",
+  band: "Band",
+  choir: "Choir",
+};
 
 export default function EnsembleDetail() {
   const { id } = useParams<{ id: string }>();
@@ -30,9 +36,11 @@ export default function EnsembleDetail() {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [allowedProjectIds, setAllowedProjectIds] = useState<Set<string> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("projects");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const me = members.find((m) => m.user_id === user?.id);
@@ -50,6 +58,13 @@ export default function EnsembleDetail() {
     load().finally(() => setLoading(false));
   }, [id]);
 
+  // For non-admins, compute which projects they're allowed to see (assigned via section or directly).
+  useEffect(() => {
+    if (!id || !user) return;
+    if (isAdmin) { setAllowedProjectIds(null); return; }
+    listProjectsAssignedToUser(id, user.id).then(setAllowedProjectIds).catch(() => setAllowedProjectIds(new Set()));
+  }, [id, user, isAdmin, projects.length]);
+
   useEffect(() => { document.title = ensemble ? `${ensemble.name} — Ensembles` : "Ensemble"; }, [ensemble]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-ink-soft" /></div>;
@@ -61,6 +76,12 @@ export default function EnsembleDetail() {
     return m?.profile?.display_name || m?.profile?.username || "User";
   };
 
+  const visibleProjects = isAdmin || !allowedProjectIds
+    ? projects
+    : projects.filter((p) => allowedProjectIds.has(p.id));
+
+  const eyebrow = ensemble.type ? TYPE_LABEL[ensemble.type] : "Ensemble";
+
   return (
     <main className="min-h-screen pb-20">
       <div className="max-w-2xl mx-auto px-6 pt-10">
@@ -68,23 +89,27 @@ export default function EnsembleDetail() {
           <ArrowLeft className="h-3 w-3" /> Ensembles
         </Link>
 
-        <header className="mb-6">
-          <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">Ensemble</p>
-          <h1 className="font-serif text-4xl font-light text-ink">{ensemble.name}</h1>
-          {ensemble.description && <p className="font-serif italic text-ink-soft mt-1">{ensemble.description}</p>}
+        <header className="mb-8 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">{eyebrow}</p>
+            <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight leading-none truncate">{ensemble.name}</h1>
+            {ensemble.description && <p className="mt-3 text-[14px] text-muted-foreground">{ensemble.description}</p>}
+          </div>
+          <button
+            onClick={() => setInfoOpen(true)}
+            aria-label="Ensemble info"
+            className="shrink-0 h-9 w-9 rounded-full grid place-items-center text-ink-soft hover:text-ink hover:bg-card/60 transition"
+          >
+            <Info className="h-4 w-4" />
+          </button>
         </header>
 
         <Tabs value={tab} onValueChange={(v) => { setTab(v); setActiveProjectId(null); }}>
-          <TabsList className="grid grid-cols-4 w-full mb-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsList className={`grid w-full mb-6 ${isAdmin ? "grid-cols-3" : "grid-cols-2"}`}>
             <TabsTrigger value="projects">Projects</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="members">Members</TabsTrigger>
+            {isAdmin && <TabsTrigger value="settings">Settings</TabsTrigger>}
           </TabsList>
-
-          <TabsContent value="overview">
-            <Overview members={members} sections={sections} projects={projects} onJump={(t) => setTab(t)} />
-          </TabsContent>
 
           <TabsContent value="members">
             <MembersTab
@@ -106,15 +131,17 @@ export default function EnsembleDetail() {
               />
             ) : (
               <ProjectsTab
-                ensembleId={id!} projects={projects} isAdmin={!!isAdmin}
+                ensembleId={id!} projects={visibleProjects} isAdmin={!!isAdmin}
                 onOpen={(pid) => setActiveProjectId(pid)} onChanged={load}
               />
             )}
           </TabsContent>
 
-          <TabsContent value="settings">
-            <SettingsTab ensembleId={id!} sections={sections} isAdmin={!!isAdmin} onChanged={load} />
-          </TabsContent>
+          {isAdmin && (
+            <TabsContent value="settings">
+              <SettingsTab ensembleId={id!} sections={sections} isAdmin={!!isAdmin} onChanged={load} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
@@ -123,29 +150,35 @@ export default function EnsembleDetail() {
         ensembleId={id!} sections={sections}
         onCreated={load}
       />
+
+      <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">{eyebrow}</p>
+            <DialogTitle className="text-[24px] font-semibold tracking-tight">{ensemble.name}</DialogTitle>
+            {ensemble.description && <DialogDescription>{ensemble.description}</DialogDescription>}
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-3 pt-2">
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Members</p>
+              <p className="text-3xl font-semibold tracking-tight mt-2">{members.length}</p>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sections</p>
+              <p className="text-3xl font-semibold tracking-tight mt-2">{sections.length}</p>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Projects</p>
+              <p className="text-3xl font-semibold tracking-tight mt-2">{isAdmin ? projects.length : visibleProjects.length}</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
 
-// ============== Overview ==============
-function Overview({ members, sections, projects, onJump }: { members: MemberRow[]; sections: Section[]; projects: Project[]; onJump: (t: string) => void }) {
-  return (
-    <div className="grid grid-cols-3 gap-3">
-      <button onClick={() => onJump("members")} className="rounded-lg border border-border p-4 text-left hover:bg-card/50 transition">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Members</p>
-        <p className="font-serif text-3xl text-ink mt-2">{members.length}</p>
-      </button>
-      <button onClick={() => onJump("settings")} className="rounded-lg border border-border p-4 text-left hover:bg-card/50 transition">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sections</p>
-        <p className="font-serif text-3xl text-ink mt-2">{sections.length}</p>
-      </button>
-      <button onClick={() => onJump("projects")} className="rounded-lg border border-border p-4 text-left hover:bg-card/50 transition">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Projects</p>
-        <p className="font-serif text-3xl text-ink mt-2">{projects.length}</p>
-      </button>
-    </div>
-  );
-}
+
 
 // ============== Members ==============
 function MembersTab({
@@ -156,7 +189,7 @@ function MembersTab({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-serif text-xl text-ink">Members <span className="text-ink-soft text-sm">· {members.length}</span></h2>
+        <h2 className="text-[24px] md:text-[28px] font-semibold tracking-tight">Members <span className="text-ink-soft text-base font-normal">· {members.length}</span></h2>
         {isAdmin && (
           <button onClick={onInviteClick} className="inline-flex items-center gap-2 bg-ink text-paper rounded-full px-4 py-2 text-xs">
             <UserPlus className="h-3.5 w-3.5" /> Invite
@@ -275,7 +308,7 @@ function ProjectsTab({ ensembleId, projects, isAdmin, onOpen, onChanged }: any) 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-serif text-xl text-ink">Projects</h2>
+        <h2 className="text-[24px] md:text-[28px] font-semibold tracking-tight">Projects</h2>
         {isAdmin && <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2 bg-ink text-paper rounded-full px-4 py-2 text-xs"><Plus className="h-3.5 w-3.5" /> New</button>}
       </div>
       {creating && (
@@ -291,7 +324,7 @@ function ProjectsTab({ ensembleId, projects, isAdmin, onOpen, onChanged }: any) 
       {projects.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-border rounded-lg">
           <Music2 className="h-6 w-6 text-ink-soft mx-auto mb-2" />
-          <p className="font-serif italic text-ink-soft">No projects yet.</p>
+          <p className="text-ink-soft italic">No projects yet.</p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -300,7 +333,7 @@ function ProjectsTab({ ensembleId, projects, isAdmin, onOpen, onChanged }: any) 
               <button onClick={() => onOpen(p.id)} className="w-full text-left rounded-lg border border-border p-4 hover:bg-card/50 transition">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-serif text-lg text-ink truncate">{p.title}</p>
+                    <p className="text-[17px] font-semibold tracking-tight truncate">{p.title}</p>
                     {p.description && <p className="text-sm text-ink-soft truncate">{p.description}</p>}
                   </div>
                   <Badge variant="outline" className="capitalize shrink-0">{p.status}</Badge>
@@ -352,7 +385,7 @@ function ProjectDetail({ ensembleId, projectId, isAdmin, me, sections, members, 
       <div>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-serif text-2xl text-ink">{project.title}</h2>
+            <h2 className="text-[28px] md:text-[32px] font-semibold tracking-tight leading-tight">{project.title}</h2>
             {project.description && <p className="text-sm text-ink-soft mt-1">{project.description}</p>}
           </div>
           {isAdmin && (
@@ -369,7 +402,7 @@ function ProjectDetail({ ensembleId, projectId, isAdmin, me, sections, members, 
       {/* Events */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-serif text-lg text-ink">Events</h3>
+          <h3 className="text-[18px] font-semibold tracking-tight">Events</h3>
           {isAdmin && <button onClick={() => setAddEventOpen(true)} className="text-xs inline-flex items-center gap-1 text-ink-soft hover:text-ink"><Plus className="h-3 w-3" /> Add</button>}
         </div>
         {events.length === 0 ? (
@@ -402,7 +435,7 @@ function ProjectDetail({ ensembleId, projectId, isAdmin, me, sections, members, 
       {/* Scores */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-serif text-lg text-ink">Sheet music</h3>
+          <h3 className="text-[18px] font-semibold tracking-tight">Sheet music</h3>
           {isAdmin && <button onClick={() => setAddScoreOpen(true)} className="text-xs inline-flex items-center gap-1 text-ink-soft hover:text-ink"><Plus className="h-3 w-3" /> Add</button>}
         </div>
         {scores.length === 0 ? (
@@ -593,7 +626,7 @@ function SettingsTab({ ensembleId, sections, isAdmin, onChanged }: any) {
   return (
     <div className="space-y-6">
       <section>
-        <h2 className="font-serif text-xl text-ink mb-3">Sections</h2>
+        <h2 className="text-[24px] md:text-[28px] font-semibold tracking-tight mb-3">Sections</h2>
         <p className="text-xs text-ink-soft mb-3">Used when assigning members and sheet music. Each ensemble has its own list.</p>
         {isAdmin && (
           <div className="flex gap-2 mb-3">

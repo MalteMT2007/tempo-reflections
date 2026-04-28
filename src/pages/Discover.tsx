@@ -77,7 +77,7 @@ const Discover = () => {
 
         <header className="mb-8">
           <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">Discover</p>
-          <h1 className="font-serif text-4xl font-light text-ink">Find musicians.</h1>
+          <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight leading-none">Find musicians.</h1>
           <p className="font-serif italic text-ink-soft mt-1">Follow others and see what they practice.</p>
         </header>
 

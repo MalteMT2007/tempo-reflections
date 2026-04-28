@@ -130,7 +130,7 @@ export const ProfileOnboarding = ({ onComplete, initial }: Props) => {
           <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">
             Step {step + 1} of 4
           </p>
-          <h1 className="font-serif text-4xl font-light text-ink leading-tight">
+          <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight leading-none">
             {step === 0 && "What should we call you?"}
             {step === 1 && "Pick a username."}
             {step === 2 && "Tell us about yourself."}
