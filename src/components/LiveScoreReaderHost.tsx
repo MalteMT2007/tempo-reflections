@@ -30,7 +30,6 @@ export function LiveScoreReaderHost() {
       } catch {}
     })();
 
-    // Listen for "switch background score" events fired from the library / suggestions.
     const onSwitch = (e: Event) => {
       const detail = (e as CustomEvent).detail as Score | undefined;
       if (detail) setScore(detail);
@@ -46,19 +45,19 @@ export function LiveScoreReaderHost() {
     return (
       <div
         aria-hidden
-        className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,hsl(var(--muted))_0%,hsl(var(--background))_60%)]"
+        className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--muted))_0%,hsl(var(--background))_60%)]"
       />
     );
   }
 
   return (
-    <div className="fixed inset-0 -z-10">
-      <ScoreReader key={score.id} score={score} onClose={() => { /* no-op: reader is always present */ }} />
+    <div className="fixed inset-0 z-0">
+      <ScoreReader key={score.id} score={score} onClose={() => { /* no-op */ }} />
     </div>
   );
 }
 
-/** Helper for pages/pills to swap the background score (and "open" it). */
+/** Helper for pages/pills to swap the background score. */
 export function setBackgroundScore(score: Score) {
   window.dispatchEvent(new CustomEvent("reader-set-score", { detail: score }));
 }
