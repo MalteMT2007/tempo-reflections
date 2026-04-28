@@ -219,30 +219,6 @@ const ErrorState = ({ message, onRetry }: { message: string; onRetry: () => void
   </div>
 );
 
-      {uploadOpen && (
-        <UploadDialog
-          onClose={() => setUploadOpen(false)}
-          onUploaded={() => { setUploadOpen(false); refresh(); }}
-        />
-      )}
-
-      {detail && (
-        <ScoreDetail
-          score={detail}
-          onClose={() => setDetail(null)}
-          onOpen={() => { const s = detail; setDetail(null); setOpenScore(s); }}
-          onDeleted={() => { setDetail(null); refresh(); }}
-        />
-      )}
-
-      {openScore && (
-        <ScoreReader score={openScore} onClose={() => setOpenScore(null)} />
-      )}
-    </div>
-  );
-};
-
-export default Library;
 
 // ---------- Upload Dialog ----------
 const UploadDialog = ({ onClose, onUploaded }: { onClose: () => void; onUploaded: () => void }) => {
