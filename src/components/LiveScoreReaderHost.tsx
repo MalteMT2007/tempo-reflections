@@ -54,7 +54,7 @@ export function LiveScoreReaderHost() {
 
   return (
     <div className="fixed inset-0 z-0">
-      <ScoreReader key={score.id} score={score} onClose={() => { /* no-op */ }} />
+      <ScoreReader key={score.id} score={score} onClose={() => navigate("/library")} />
     </div>
   );
 }
