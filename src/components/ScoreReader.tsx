@@ -125,7 +125,6 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       setCanvasSize(canvas);
       setCanvasSize(overlay);
       setRenderSize({ w: viewport.width, h: viewport.height });
-      setRenderSize({ w: viewport.width, h: viewport.height });
 
       const ctx = canvas.getContext("2d")!;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
