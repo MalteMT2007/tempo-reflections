@@ -25,7 +25,7 @@ export function TopMenu({ open, onClose }: { open: boolean; onClose: () => void 
     >
       <aside
         onClick={(e) => e.stopPropagation()}
-        className="absolute right-0 top-0 h-full w-[82%] max-w-sm bg-background border-l border-border shadow-elev flex flex-col animate-slide-in-right"
+        className="absolute right-0 top-0 h-full w-[82%] max-w-sm bg-background border-l border-border shadow-elev flex flex-col animate-fade-in"
       >
         <div className="flex items-center justify-between px-5 h-14 border-b border-border">
           <span className="text-[15px] font-semibold tracking-tight">Menu</span>
