@@ -1,5 +1,6 @@
-import { Music2, Users, BookOpen, Hash, User as UserIcon, LogOut } from "lucide-react";
+import { Music2, Users, BookOpen, Hash, User as UserIcon, LogOut, Inbox as InboxIcon } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -13,12 +14,14 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const items = [
   { title: "Practise", url: "/practise", icon: Music2 },
   { title: "Ensemble", url: "/ensembles", icon: Users },
   { title: "Library", url: "/library", icon: BookOpen },
   { title: "Spaces", url: "/spaces", icon: Hash },
+  { title: "Inbox", url: "/inbox", icon: InboxIcon },
   { title: "Profile", url: "/profile", icon: UserIcon },
 ];
 
@@ -26,10 +29,32 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  const [pending, setPending] = useState(0);
 
   const isActive = (path: string) =>
     pathname === path || (path !== "/" && pathname.startsWith(path));
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [{ count: ec }, { count: rc }] = await Promise.all([
+          supabase.from("ensemble_invites").select("id", { head: true, count: "exact" }).eq("status", "pending"),
+          supabase.from("room_invites").select("id", { head: true, count: "exact" }).eq("status", "pending").eq("invitee_id", user.id),
+        ]);
+        if (!cancelled) setPending((ec ?? 0) + (rc ?? 0));
+      } catch { /* noop */ }
+    };
+    load();
+    const ch = supabase
+      .channel("inbox-badge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "ensemble_invites" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_invites" }, load)
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [user, pathname]);
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -52,21 +77,38 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                    className="h-11 text-[15px]"
-                  >
-                    <NavLink to={item.url} className="flex items-center gap-3">
-                      <item.icon className="h-[18px] w-[18px]" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map((item) => {
+                const showBadge = item.url === "/inbox" && pending > 0;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
+                      className="h-11 text-[15px]"
+                    >
+                      <NavLink to={item.url} className="flex items-center gap-3">
+                        <span className="relative inline-flex">
+                          <item.icon className="h-[18px] w-[18px]" />
+                          {showBadge && collapsed && (
+                            <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" />
+                          )}
+                        </span>
+                        {!collapsed && (
+                          <span className="flex-1 flex items-center justify-between">
+                            <span>{item.title}</span>
+                            {showBadge && (
+                              <span className="ml-2 inline-flex h-5 min-w-5 px-1.5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[11px] font-medium">
+                                {pending}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
