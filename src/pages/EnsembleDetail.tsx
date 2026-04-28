@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, UserPlus, Trash2, X, FileText, Calendar, MapPin, Music2, Mail, Link2 } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, UserPlus, Trash2, X, FileText, Calendar, MapPin, Music2, Mail, Link2, Info } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,18 @@ import {
   listProjects, createProject, updateProject, deleteProject,
   listEvents, createEvent, deleteEvent,
   listProjectScores, createProjectScore, deleteProjectScore, uploadProjectScoreFile, getProjectScoreSignedUrl,
-  listAssignments, assignScore, unassignScore,
-  Ensemble, Section, MemberRow, Invite, Project, EventRow, ProjectScore, Assignment, EnsembleRole, ProjectStatus, EventType,
+  listAssignments, assignScore, unassignScore, listProjectsAssignedToUser,
+  Ensemble, Section, MemberRow, Invite, Project, EventRow, ProjectScore, Assignment, EnsembleRole, ProjectStatus, EventType, EnsembleType,
 } from "@/lib/ensembles";
 import InviteMemberDialog from "@/components/ensemble/InviteMemberDialog";
 import { RoleBadge } from "@/components/ensemble/RoleBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+
+const TYPE_LABEL: Record<EnsembleType, string> = {
+  orchestra: "Orchestra",
+  band: "Band",
+  choir: "Choir",
+};
 
 export default function EnsembleDetail() {
   const { id } = useParams<{ id: string }>();
@@ -30,9 +36,11 @@ export default function EnsembleDetail() {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [allowedProjectIds, setAllowedProjectIds] = useState<Set<string> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("projects");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const me = members.find((m) => m.user_id === user?.id);
@@ -50,6 +58,13 @@ export default function EnsembleDetail() {
     load().finally(() => setLoading(false));
   }, [id]);
 
+  // For non-admins, compute which projects they're allowed to see (assigned via section or directly).
+  useEffect(() => {
+    if (!id || !user) return;
+    if (isAdmin) { setAllowedProjectIds(null); return; }
+    listProjectsAssignedToUser(id, user.id).then(setAllowedProjectIds).catch(() => setAllowedProjectIds(new Set()));
+  }, [id, user, isAdmin, projects.length]);
+
   useEffect(() => { document.title = ensemble ? `${ensemble.name} — Ensembles` : "Ensemble"; }, [ensemble]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-ink-soft" /></div>;
@@ -61,6 +76,12 @@ export default function EnsembleDetail() {
     return m?.profile?.display_name || m?.profile?.username || "User";
   };
 
+  const visibleProjects = isAdmin || !allowedProjectIds
+    ? projects
+    : projects.filter((p) => allowedProjectIds.has(p.id));
+
+  const eyebrow = ensemble.type ? TYPE_LABEL[ensemble.type] : "Ensemble";
+
   return (
     <main className="min-h-screen pb-20">
       <div className="max-w-2xl mx-auto px-6 pt-10">
@@ -68,23 +89,27 @@ export default function EnsembleDetail() {
           <ArrowLeft className="h-3 w-3" /> Ensembles
         </Link>
 
-        <header className="mb-6">
-          <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">Ensemble</p>
-          <h1 className="font-serif text-4xl font-light text-ink">{ensemble.name}</h1>
-          {ensemble.description && <p className="font-serif italic text-ink-soft mt-1">{ensemble.description}</p>}
+        <header className="mb-8 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">{eyebrow}</p>
+            <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight leading-none truncate">{ensemble.name}</h1>
+            {ensemble.description && <p className="mt-3 text-[14px] text-muted-foreground">{ensemble.description}</p>}
+          </div>
+          <button
+            onClick={() => setInfoOpen(true)}
+            aria-label="Ensemble info"
+            className="shrink-0 h-9 w-9 rounded-full grid place-items-center text-ink-soft hover:text-ink hover:bg-card/60 transition"
+          >
+            <Info className="h-4 w-4" />
+          </button>
         </header>
 
         <Tabs value={tab} onValueChange={(v) => { setTab(v); setActiveProjectId(null); }}>
-          <TabsList className="grid grid-cols-4 w-full mb-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
+          <TabsList className={`grid w-full mb-6 ${isAdmin ? "grid-cols-3" : "grid-cols-2"}`}>
             <TabsTrigger value="projects">Projects</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="members">Members</TabsTrigger>
+            {isAdmin && <TabsTrigger value="settings">Settings</TabsTrigger>}
           </TabsList>
-
-          <TabsContent value="overview">
-            <Overview members={members} sections={sections} projects={projects} onJump={(t) => setTab(t)} />
-          </TabsContent>
 
           <TabsContent value="members">
             <MembersTab
@@ -106,15 +131,17 @@ export default function EnsembleDetail() {
               />
             ) : (
               <ProjectsTab
-                ensembleId={id!} projects={projects} isAdmin={!!isAdmin}
+                ensembleId={id!} projects={visibleProjects} isAdmin={!!isAdmin}
                 onOpen={(pid) => setActiveProjectId(pid)} onChanged={load}
               />
             )}
           </TabsContent>
 
-          <TabsContent value="settings">
-            <SettingsTab ensembleId={id!} sections={sections} isAdmin={!!isAdmin} onChanged={load} />
-          </TabsContent>
+          {isAdmin && (
+            <TabsContent value="settings">
+              <SettingsTab ensembleId={id!} sections={sections} isAdmin={!!isAdmin} onChanged={load} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
@@ -123,9 +150,34 @@ export default function EnsembleDetail() {
         ensembleId={id!} sections={sections}
         onCreated={load}
       />
+
+      <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">{eyebrow}</p>
+            <DialogTitle className="text-[24px] font-semibold tracking-tight">{ensemble.name}</DialogTitle>
+            {ensemble.description && <DialogDescription>{ensemble.description}</DialogDescription>}
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-3 pt-2">
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Members</p>
+              <p className="text-3xl font-semibold tracking-tight mt-2">{members.length}</p>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sections</p>
+              <p className="text-3xl font-semibold tracking-tight mt-2">{sections.length}</p>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Projects</p>
+              <p className="text-3xl font-semibold tracking-tight mt-2">{isAdmin ? projects.length : visibleProjects.length}</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
+
 
 // ============== Overview ==============
 function Overview({ members, sections, projects, onJump }: { members: MemberRow[]; sections: Section[]; projects: Project[]; onJump: (t: string) => void }) {
