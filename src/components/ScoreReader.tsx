@@ -32,6 +32,11 @@ import {
 } from "@/lib/scores";
 import { useAuth } from "@/contexts/AuthContext";
 import { DrawingCanvas, type CompletedStroke } from "@/components/drawing/DrawingCanvas";
+import { supabase } from "@/integrations/supabase/client";
+import { useScorePresence, type PresenceUser } from "@/hooks/useScorePresence";
+import { PresenceAvatars } from "@/components/PresenceAvatars";
+import { useDraggableSnap, dockStyle, isVerticalEdge } from "@/hooks/useDraggableSnap";
+import { GripVertical } from "lucide-react";
 
 type Tool = "pan" | "draw" | "text" | "erase";
 
