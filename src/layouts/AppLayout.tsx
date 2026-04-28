@@ -1,28 +1,30 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getProfile, DbProfile } from "@/lib/api";
 import { BottomDock } from "@/components/BottomDock";
 import { ReaderHamburger } from "@/components/ReaderHamburger";
-import { BlurredScoreBackdrop } from "@/components/BlurredScoreBackdrop";
-import { useLocation } from "react-router-dom";
+import { LiveScoreReaderHost } from "@/components/LiveScoreReaderHost";
 
 export default function AppLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [profile, setProfile] = useState<DbProfile | null>(null);
-  const [readerOpen, setReaderOpen] = useState(false);
 
-  // Home renders its own full-screen ScoreReader as background — no static backdrop there.
-  const showBackdrop = location.pathname !== "/" && !readerOpen;
+  // Reader mode = no overlay, ScoreReader chrome interactive.
+  const inReader = location.pathname === "/reader";
 
+  // Toggle a body attribute so ScoreReader can know when an overlay
+  // is covering it (and hide its own top toolbars accordingly).
   useEffect(() => {
-    const sync = () => setReaderOpen(document.body.hasAttribute("data-reader-open"));
-    sync();
-    window.addEventListener("reader-open-change", sync);
-    return () => window.removeEventListener("reader-open-change", sync);
-  }, []);
+    if (inReader) {
+      document.body.removeAttribute("data-page-overlay");
+    } else {
+      document.body.setAttribute("data-page-overlay", "true");
+    }
+    return () => document.body.removeAttribute("data-page-overlay");
+  }, [inReader]);
 
   useEffect(() => {
     if (!user) return;
@@ -32,14 +34,16 @@ export default function AppLayout() {
   const initial = (profile?.display_name || profile?.username || user?.email || "?").charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen flex flex-col w-full bg-background relative">
-      {showBackdrop && <BlurredScoreBackdrop />}
-      {/* Floating profile top-right */}
-      {!readerOpen && (
+    <div className="min-h-screen w-full bg-background relative">
+      {/* Persistent background reader — single instance, never unmounts */}
+      <LiveScoreReaderHost />
+
+      {/* Floating profile (hidden while reading to keep score clean) */}
+      {!inReader && (
         <button
           onClick={() => navigate("/profile")}
           aria-label="Profile"
-          className="fixed z-40 h-10 w-10 grid place-items-center rounded-full overflow-hidden spring-tap bg-muted/80 backdrop-blur-xl border border-border/60 shadow-[0_4px_16px_-6px_rgba(0,0,0,0.25)]"
+          className="fixed z-[45] h-10 w-10 grid place-items-center rounded-full overflow-hidden spring-tap bg-muted/80 backdrop-blur-xl border border-border/60 shadow-[0_4px_16px_-6px_rgba(0,0,0,0.25)]"
           style={{
             top: "calc(env(safe-area-inset-top, 0px) + 14px)",
             right: "calc(env(safe-area-inset-right, 0px) + 14px)",
@@ -53,11 +57,12 @@ export default function AppLayout() {
         </button>
       )}
 
-      <main className="flex-1 min-w-0 animate-fade-in pb-28">
-        <Outlet />
-      </main>
+      {/* Page overlay layer (route content). Reader page renders nothing. */}
+      <Outlet />
 
-      {readerOpen ? <ReaderHamburger /> : <BottomDock />}
+      {/* Always-on dock + hamburger */}
+      <BottomDock inReader={inReader} />
+      <ReaderHamburger />
     </div>
   );
 }
