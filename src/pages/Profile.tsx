@@ -153,7 +153,7 @@ const Profile = () => {
           </button>
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-1">Profile</p>
-            <h1 className="font-serif text-3xl font-light text-ink truncate">{form.display_name || `@${form.username}`}</h1>
+            <h1 className="text-[28px] md:text-[34px] font-semibold tracking-tight truncate">{form.display_name || `@${form.username}`}</h1>
             <p className="font-serif italic text-ink-soft truncate">@{form.username}</p>
           </div>
           <input

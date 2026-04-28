@@ -64,7 +64,7 @@ const Auth = () => {
       <div className="w-full max-w-sm animate-fade-in">
         <header className="mb-10 text-center">
           <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">Practice</p>
-          <h1 className="font-serif text-4xl font-light text-ink">
+          <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight leading-none">
             {mode === "signin" ? "Welcome back." : "Begin your practice."}
           </h1>
           <p className="font-serif italic text-ink-soft mt-2">
