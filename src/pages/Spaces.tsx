@@ -1,49 +1,35 @@
 import { useEffect, useState } from "react";
-import { Hash, Sparkles } from "lucide-react";
 import ColabrateFeed from "@/components/spaces/ColabrateFeed";
 import RoomsPanel from "@/components/spaces/RoomsPanel";
+import { Segmented } from "@/components/ui/segmented";
 
 type Tab = "discover" | "rooms";
 
 export default function Spaces() {
   const [tab, setTab] = useState<Tab>("discover");
 
-  useEffect(() => {
-    document.title = "Spaces — Tempo";
-  }, []);
+  useEffect(() => { document.title = "Spaces — Tempo"; }, []);
 
   return (
-    <div className="h-[calc(100vh-3rem)] flex flex-col">
-      <div className="px-6 pt-6 pb-3 border-b">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-semibold tracking-tight">Spaces</h1>
-        </div>
-        <div className="inline-flex rounded-xl bg-secondary p-1 gap-1">
-          <button
-            onClick={() => setTab("discover")}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
-              tab === "discover"
-                ? "bg-background shadow-sm text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Sparkles className="h-4 w-4" /> Discover
-          </button>
-          <button
-            onClick={() => setTab("rooms")}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors ${
-              tab === "rooms"
-                ? "bg-background shadow-sm text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Hash className="h-4 w-4" /> Rooms
-          </button>
+    <div className="min-h-[calc(100vh-3.5rem)] flex flex-col">
+      <div className="px-6 md:px-10 pt-10">
+        <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight">Spaces</h1>
+        <div className="mt-5">
+          <Segmented
+            value={tab}
+            onChange={(v) => setTab(v as Tab)}
+            segments={[
+              { value: "discover", label: "Discover" },
+              { value: "rooms", label: "Rooms" },
+            ]}
+          />
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden">
-        {tab === "discover" ? <ColabrateFeed /> : <RoomsPanel />}
+      <div className="flex-1 min-h-0 mt-6">
+        <div key={tab} className="animate-fade-in h-full">
+          {tab === "discover" ? <ColabrateFeed /> : <RoomsPanel />}
+        </div>
       </div>
     </div>
   );
