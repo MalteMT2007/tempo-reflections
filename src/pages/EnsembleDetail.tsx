@@ -189,7 +189,7 @@ function MembersTab({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-serif text-xl text-ink">Members <span className="text-ink-soft text-sm">· {members.length}</span></h2>
+        <h2 className="text-[24px] md:text-[28px] font-semibold tracking-tight">Members <span className="text-ink-soft text-base font-normal">· {members.length}</span></h2>
         {isAdmin && (
           <button onClick={onInviteClick} className="inline-flex items-center gap-2 bg-ink text-paper rounded-full px-4 py-2 text-xs">
             <UserPlus className="h-3.5 w-3.5" /> Invite
@@ -308,7 +308,7 @@ function ProjectsTab({ ensembleId, projects, isAdmin, onOpen, onChanged }: any) 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-serif text-xl text-ink">Projects</h2>
+        <h2 className="text-[24px] md:text-[28px] font-semibold tracking-tight">Projects</h2>
         {isAdmin && <button onClick={() => setCreating(true)} className="inline-flex items-center gap-2 bg-ink text-paper rounded-full px-4 py-2 text-xs"><Plus className="h-3.5 w-3.5" /> New</button>}
       </div>
       {creating && (
@@ -324,7 +324,7 @@ function ProjectsTab({ ensembleId, projects, isAdmin, onOpen, onChanged }: any) 
       {projects.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-border rounded-lg">
           <Music2 className="h-6 w-6 text-ink-soft mx-auto mb-2" />
-          <p className="font-serif italic text-ink-soft">No projects yet.</p>
+          <p className="text-ink-soft italic">No projects yet.</p>
         </div>
       ) : (
         <ul className="space-y-2">
@@ -333,7 +333,7 @@ function ProjectsTab({ ensembleId, projects, isAdmin, onOpen, onChanged }: any) 
               <button onClick={() => onOpen(p.id)} className="w-full text-left rounded-lg border border-border p-4 hover:bg-card/50 transition">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-serif text-lg text-ink truncate">{p.title}</p>
+                    <p className="text-[17px] font-semibold tracking-tight truncate">{p.title}</p>
                     {p.description && <p className="text-sm text-ink-soft truncate">{p.description}</p>}
                   </div>
                   <Badge variant="outline" className="capitalize shrink-0">{p.status}</Badge>
@@ -385,7 +385,7 @@ function ProjectDetail({ ensembleId, projectId, isAdmin, me, sections, members, 
       <div>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-serif text-2xl text-ink">{project.title}</h2>
+            <h2 className="text-[28px] md:text-[32px] font-semibold tracking-tight leading-tight">{project.title}</h2>
             {project.description && <p className="text-sm text-ink-soft mt-1">{project.description}</p>}
           </div>
           {isAdmin && (
@@ -402,7 +402,7 @@ function ProjectDetail({ ensembleId, projectId, isAdmin, me, sections, members, 
       {/* Events */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-serif text-lg text-ink">Events</h3>
+          <h3 className="text-[18px] font-semibold tracking-tight">Events</h3>
           {isAdmin && <button onClick={() => setAddEventOpen(true)} className="text-xs inline-flex items-center gap-1 text-ink-soft hover:text-ink"><Plus className="h-3 w-3" /> Add</button>}
         </div>
         {events.length === 0 ? (
@@ -435,7 +435,7 @@ function ProjectDetail({ ensembleId, projectId, isAdmin, me, sections, members, 
       {/* Scores */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-serif text-lg text-ink">Sheet music</h3>
+          <h3 className="text-[18px] font-semibold tracking-tight">Sheet music</h3>
           {isAdmin && <button onClick={() => setAddScoreOpen(true)} className="text-xs inline-flex items-center gap-1 text-ink-soft hover:text-ink"><Plus className="h-3 w-3" /> Add</button>}
         </div>
         {scores.length === 0 ? (
@@ -626,7 +626,7 @@ function SettingsTab({ ensembleId, sections, isAdmin, onChanged }: any) {
   return (
     <div className="space-y-6">
       <section>
-        <h2 className="font-serif text-xl text-ink mb-3">Sections</h2>
+        <h2 className="text-[24px] md:text-[28px] font-semibold tracking-tight mb-3">Sections</h2>
         <p className="text-xs text-ink-soft mb-3">Used when assigning members and sheet music. Each ensemble has its own list.</p>
         {isAdmin && (
           <div className="flex gap-2 mb-3">
