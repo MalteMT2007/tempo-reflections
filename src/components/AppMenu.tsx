@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, User, Users, Music2, LogOut } from "lucide-react";
+import { Menu, X, User, Users, Music2, LogOut, FileMusic } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getProfile, DbProfile } from "@/lib/api";
 
@@ -81,6 +81,10 @@ export const AppMenu = () => {
               <MenuItem to="/collegues" icon={<Users className="h-4 w-4" />} onClick={() => setOpen(false)}>
                 Collegues
                 <span className="text-[10px] text-ink-soft font-serif italic ml-auto">what others practice</span>
+              </MenuItem>
+              <MenuItem to="/library" icon={<FileMusic className="h-4 w-4" />} onClick={() => setOpen(false)}>
+                Sheet music
+                <span className="text-[10px] text-ink-soft font-serif italic ml-auto">your score library</span>
               </MenuItem>
               <MenuItem to="/ensembles" icon={<Music2 className="h-4 w-4" />} onClick={() => setOpen(false)}>
                 Ensembles

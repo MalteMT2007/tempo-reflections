@@ -9,6 +9,7 @@ import Auth from "./pages/Auth.tsx";
 import Profile from "./pages/Profile.tsx";
 import Collegues from "./pages/Collegues.tsx";
 import Ensembles from "./pages/Ensembles.tsx";
+import Library from "./pages/Library.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/profile" element={<Protected><Profile /></Protected>} />
             <Route path="/collegues" element={<Protected><Collegues /></Protected>} />
             <Route path="/ensembles" element={<Protected><Ensembles /></Protected>} />
+            <Route path="/library" element={<Protected><Library /></Protected>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
