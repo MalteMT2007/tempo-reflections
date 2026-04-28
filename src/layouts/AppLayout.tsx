@@ -12,6 +12,14 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const [pending, setPending] = useState(0);
   const [profile, setProfile] = useState<DbProfile | null>(null);
+  const [readerOpen, setReaderOpen] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setReaderOpen(document.body.hasAttribute("data-reader-open"));
+    sync();
+    window.addEventListener("reader-open-change", sync);
+    return () => window.removeEventListener("reader-open-change", sync);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
