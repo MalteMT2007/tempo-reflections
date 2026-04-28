@@ -97,7 +97,7 @@ export default function AppLayout() {
         <Outlet />
       </main>
 
-      <BottomDock />
+      {readerOpen ? <ReaderHamburger /> : <BottomDock />}
     </div>
   );
 }
