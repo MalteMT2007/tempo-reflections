@@ -139,6 +139,45 @@ export const PracticeMode = ({ title, byline, focus, tags, goal, startedAt, onEn
         onClose={() => setNotebookOpen(false)}
         onChange={(entries) => setNoteCount(entries.length)}
       />
+
+      {scoresOpen && !openScore && (
+        <div className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-paper border border-border rounded-t-lg sm:rounded-lg shadow-elev w-full max-w-md p-6 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif text-xl text-ink">Open a score</h3>
+              <button
+                onClick={() => setScoresOpen(false)}
+                className="text-xs text-ink-soft hover:text-ink uppercase tracking-wider"
+              >
+                Close
+              </button>
+            </div>
+            {scores.length === 0 ? (
+              <p className="font-serif italic text-sm text-ink-soft text-center py-6">
+                Your library is empty. Upload PDFs from the menu → Sheet music.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {scores.map((s) => (
+                  <li key={s.id}>
+                    <button
+                      onClick={() => { setOpenScore(s); setScoresOpen(false); }}
+                      className="w-full text-left py-3 hover:bg-card/40 px-2 rounded transition"
+                    >
+                      <p className="font-serif text-sm text-ink truncate">{s.title}</p>
+                      {s.composer && <p className="font-serif italic text-[11px] text-ink-soft truncate">{s.composer}</p>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {openScore && (
+        <ScoreReader score={openScore} onClose={() => setOpenScore(null)} />
+      )}
     </div>
   );
 };
