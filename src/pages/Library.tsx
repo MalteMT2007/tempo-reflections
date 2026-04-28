@@ -23,6 +23,8 @@ import {
   setScoreFavorite,
   uploadScore,
 } from "@/lib/scores";
+import { supabase } from "@/integrations/supabase/client";
+import { listProjects, createProjectScore, type Project } from "@/lib/ensembles";
 import {
   DropdownMenu,
   DropdownMenuContent,
