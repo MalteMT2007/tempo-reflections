@@ -10,6 +10,7 @@ import Profile from "./pages/Profile.tsx";
 import Collegues from "./pages/Collegues.tsx";
 import Ensembles from "./pages/Ensembles.tsx";
 import Library from "./pages/Library.tsx";
+import Discover from "./pages/Discover.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/collegues" element={<Protected><Collegues /></Protected>} />
             <Route path="/ensembles" element={<Protected><Ensembles /></Protected>} />
             <Route path="/library" element={<Protected><Library /></Protected>} />
+            <Route path="/discover" element={<Protected><Discover /></Protected>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

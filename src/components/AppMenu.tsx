@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, User, Users, Music2, LogOut, FileMusic } from "lucide-react";
+import { Menu, X, User, Users, Music2, LogOut, FileMusic, Compass } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getProfile, DbProfile } from "@/lib/api";
 
@@ -77,6 +77,10 @@ export const AppMenu = () => {
             <nav className="flex flex-col gap-1">
               <MenuItem to="/profile" icon={<User className="h-4 w-4" />} onClick={() => setOpen(false)}>
                 Your profile
+              </MenuItem>
+              <MenuItem to="/discover" icon={<Compass className="h-4 w-4" />} onClick={() => setOpen(false)}>
+                Discover
+                <span className="text-[10px] text-ink-soft font-serif italic ml-auto">find musicians</span>
               </MenuItem>
               <MenuItem to="/collegues" icon={<Users className="h-4 w-4" />} onClick={() => setOpen(false)}>
                 Collegues
