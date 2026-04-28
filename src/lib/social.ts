@@ -386,6 +386,39 @@ export async function listMyInvites(): Promise<RoomInvite[]> {
   return rows.map((r: any) => ({ ...r, room: m.get(r.room_id) ?? null }));
 }
 
+export type ResolvedRoomInvite = {
+  id: string;
+  room_id: string;
+  status: "accepted" | "declined";
+  created_at: string;
+  responded_at: string | null;
+  room?: { name: string; avatar_url: string | null } | null;
+};
+
+export async function listMyResolvedRoomInvites(days = 30): Promise<ResolvedRoomInvite[]> {
+  const me = await currentUserId();
+  if (!me) return [];
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("room_invites")
+    .select("id, room_id, status, created_at, responded_at")
+    .eq("invitee_id", me)
+    .in("status", ["accepted", "declined"] as any)
+    .gte("created_at", since)
+    .order("responded_at", { ascending: false });
+  if (error) throw error;
+  const rows = (data ?? []) as any[];
+  if (!rows.length) return [];
+  const roomIds = Array.from(new Set(rows.map((r) => r.room_id)));
+  const { data: rooms } = await supabase
+    .from("rooms")
+    .select("id, name, avatar_url")
+    .in("id", roomIds);
+  const m = new Map<string, any>();
+  for (const r of (rooms ?? []) as any[]) m.set(r.id, r);
+  return rows.map((r) => ({ ...r, room: m.get(r.room_id) ?? null }));
+}
+
 export async function inviteUserToRoom(roomId: string, inviteeId: string) {
   const me = await currentUserId();
   if (!me) throw new Error("Not signed in");

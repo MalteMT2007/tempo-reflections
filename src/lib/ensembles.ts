@@ -158,6 +158,48 @@ export async function declineEnsembleInvite(id: string) {
   if (error) throw error;
 }
 
+export type ResolvedEnsembleInvite = {
+  id: string;
+  ensemble_id: string;
+  status: "accepted" | "declined";
+  role: string;
+  created_at: string;
+  accepted_at: string | null;
+  ensemble?: { name: string } | null;
+};
+
+export async function listMyResolvedInvites(days = 30): Promise<ResolvedEnsembleInvite[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("ensemble_invites")
+    .select("id, ensemble_id, status, role, created_at, accepted_at, invitee_user_id, email")
+    .in("status", ["accepted", "declined"] as any)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  // RLS allows admins to see invites they sent — keep only invites addressed to me.
+  const myEmail = user.email?.toLowerCase() ?? "";
+  const rows = (data ?? []).filter((r: any) =>
+    r.invitee_user_id === user.id || (r.email && r.email.toLowerCase() === myEmail)
+  ) as any[];
+  if (!rows.length) return [];
+  const ids = Array.from(new Set(rows.map((r) => r.ensemble_id)));
+  const { data: ens } = await supabase.from("ensembles").select("id, name").in("id", ids);
+  const map = new Map<string, any>();
+  for (const e of (ens ?? []) as any[]) map.set(e.id, e);
+  return rows.map((r) => ({
+    id: r.id,
+    ensemble_id: r.ensemble_id,
+    status: r.status,
+    role: r.role,
+    created_at: r.created_at,
+    accepted_at: r.accepted_at,
+    ensemble: map.get(r.ensemble_id) ?? null,
+  }));
+}
+
 // ===== Projects =====
 export async function listProjects(ensembleId: string): Promise<Project[]> {
   const { data, error } = await supabase.from("ensemble_projects").select("*")
