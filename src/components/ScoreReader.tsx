@@ -103,6 +103,21 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
 
   const showChrome = chromeVisible && !overlayActive;
 
+  // Broadcast chrome visibility so dock/hamburger can mirror toolbar visibility.
+  useEffect(() => {
+    if (overlayActive) return;
+    if (showChrome) {
+      document.body.setAttribute("data-reader-chrome", "true");
+    } else {
+      document.body.removeAttribute("data-reader-chrome");
+    }
+    window.dispatchEvent(new Event("reader-chrome-change"));
+    return () => {
+      document.body.removeAttribute("data-reader-chrome");
+      window.dispatchEvent(new Event("reader-chrome-change"));
+    };
+  }, [showChrome, overlayActive]);
+
   // Load PDF
   useEffect(() => {
     let cancelled = false;
