@@ -530,55 +530,127 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
         </div>
       </div>
 
-      {/* Annotate sub-toolbar (only when active) */}
+      {/* Annotate sub-toolbar — draggable, snaps to nearest screen edge */}
       {annotateOpen && (
-        <div
-          className={`pointer-events-none fixed bottom-6 inset-x-0 z-40 px-3 transition-all duration-300 ${
-            showChrome ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
-          }`}
-        >
-          <div className="flex justify-center">
-            <GlassPill>
-              <PillBtn active={tool === "draw"} onClick={() => setTool("draw")} label="Draw"><Pencil className="h-[18px] w-[18px]" /></PillBtn>
-              <PillBtn active={tool === "text"} onClick={() => setTool("text")} label="Text"><TypeIcon className="h-[18px] w-[18px]" /></PillBtn>
-              <PillBtn active={tool === "erase"} onClick={() => setTool("erase")} label="Erase"><Eraser className="h-[18px] w-[18px]" /></PillBtn>
-              <Divider />
-              {COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setColor(c)}
-                  className={`pointer-events-auto h-5 w-5 rounded-full border transition ${color === c ? "border-ink scale-110" : "border-ink/20"}`}
-                  style={{ background: c }}
-                  aria-label={`Color ${c}`}
-                />
-              ))}
-              <Divider />
-              {WIDTHS.map((w) => (
-                <button
-                  key={w}
-                  onClick={() => setWidth(w)}
-                  className={`pointer-events-auto h-7 w-7 rounded-full flex items-center justify-center transition ${width === w ? "bg-ink/10" : ""}`}
-                  aria-label={`Width ${w}`}
-                >
-                  <span className="rounded-full bg-ink" style={{ width: w + 2, height: w + 2 }} />
-                </button>
-              ))}
-              <Divider />
-              <PillBtn onClick={undo} label="Undo" disabled={undoStack.length === 0}><Undo2 className="h-[18px] w-[18px]" /></PillBtn>
-              <PillBtn onClick={redo} label="Redo" disabled={redoStack.length === 0}><Redo2 className="h-[18px] w-[18px]" /></PillBtn>
-              <PillBtn
-                label="Done"
-                onClick={() => { setAnnotateOpen(false); setTool("pan"); }}
-              >
-                <X className="h-[18px] w-[18px]" />
-              </PillBtn>
-            </GlassPill>
-          </div>
-        </div>
+        <DraggableAnnotateToolbar
+          visible={showChrome}
+          tool={tool}
+          setTool={setTool}
+          color={color}
+          setColor={setColor}
+          width={width}
+          setWidth={setWidth}
+          undo={undo}
+          redo={redo}
+          undoDisabled={undoStack.length === 0}
+          redoDisabled={redoStack.length === 0}
+          onClose={() => { setAnnotateOpen(false); setTool("pan"); }}
+        />
       )}
     </div>
   );
 };
+
+// ---- Draggable snap-to-edge toolbar ----
+function DraggableAnnotateToolbar({
+  visible,
+  tool,
+  setTool,
+  color,
+  setColor,
+  width,
+  setWidth,
+  undo,
+  redo,
+  undoDisabled,
+  redoDisabled,
+  onClose,
+}: {
+  visible: boolean;
+  tool: Tool;
+  setTool: (t: Tool) => void;
+  color: string;
+  setColor: (c: string) => void;
+  width: number;
+  setWidth: (w: number) => void;
+  undo: () => void;
+  redo: () => void;
+  undoDisabled: boolean;
+  redoDisabled: boolean;
+  onClose: () => void;
+}) {
+  const { pos, dragging, previewXY, bind } = useDraggableSnap("pen-toolbar-pos", { edge: "right", offset: 50 });
+  const vertical = isVerticalEdge(pos.edge);
+
+  const style: React.CSSProperties = dragging && previewXY
+    ? { position: "fixed", left: previewXY.x, top: previewXY.y, transform: "translate(-50%, -50%)" }
+    : dockStyle(pos, vertical);
+
+  return (
+    <>
+      {/* Edge snap hint while dragging */}
+      {dragging && (
+        <div className="pointer-events-none fixed inset-0 z-30">
+          <div className="absolute inset-y-0 left-0 w-2 bg-primary/20" />
+          <div className="absolute inset-y-0 right-0 w-2 bg-primary/20" />
+          <div className="absolute inset-x-0 top-0 h-2 bg-primary/20" />
+          <div className="absolute inset-x-0 bottom-0 h-2 bg-primary/20" />
+        </div>
+      )}
+      <div
+        {...bind}
+        style={{ ...style, touchAction: "none", zIndex: 41 }}
+        className={`transition-opacity duration-200 ${visible || dragging ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+      >
+        <div
+          className={`pointer-events-auto flex ${vertical ? "flex-col" : "flex-row"} items-center gap-0.5 rounded-2xl ${vertical ? "px-1.5 py-2" : "px-2 py-1.5"} bg-background/70 backdrop-blur-xl border border-ink/10 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.25)]`}
+        >
+          <button
+            data-drag-handle
+            className="pointer-events-auto h-7 w-7 rounded-md flex items-center justify-center text-ink/40 hover:text-ink/70 cursor-grab active:cursor-grabbing"
+            aria-label="Drag toolbar"
+            title="Drag to move"
+            onClick={(e) => e.preventDefault()}
+          >
+            <GripVertical className={`h-4 w-4 ${vertical ? "" : "rotate-90"}`} />
+          </button>
+          <ToolDivider vertical={vertical} />
+          <PillBtn active={tool === "draw"} onClick={() => setTool("draw")} label="Draw"><Pencil className="h-[18px] w-[18px]" /></PillBtn>
+          <PillBtn active={tool === "text"} onClick={() => setTool("text")} label="Text"><TypeIcon className="h-[18px] w-[18px]" /></PillBtn>
+          <PillBtn active={tool === "erase"} onClick={() => setTool("erase")} label="Erase"><Eraser className="h-[18px] w-[18px]" /></PillBtn>
+          <ToolDivider vertical={vertical} />
+          {COLORS.map((c) => (
+            <button
+              key={c}
+              onClick={() => setColor(c)}
+              className={`pointer-events-auto h-5 w-5 rounded-full border transition shrink-0 ${color === c ? "border-ink scale-110" : "border-ink/20"}`}
+              style={{ background: c }}
+              aria-label={`Color ${c}`}
+            />
+          ))}
+          <ToolDivider vertical={vertical} />
+          {WIDTHS.map((w) => (
+            <button
+              key={w}
+              onClick={() => setWidth(w)}
+              className={`pointer-events-auto h-7 w-7 rounded-full flex items-center justify-center transition shrink-0 ${width === w ? "bg-ink/10" : ""}`}
+              aria-label={`Width ${w}`}
+            >
+              <span className="rounded-full bg-ink" style={{ width: w + 2, height: w + 2 }} />
+            </button>
+          ))}
+          <ToolDivider vertical={vertical} />
+          <PillBtn onClick={undo} label="Undo" disabled={undoDisabled}><Undo2 className="h-[18px] w-[18px]" /></PillBtn>
+          <PillBtn onClick={redo} label="Redo" disabled={redoDisabled}><Redo2 className="h-[18px] w-[18px]" /></PillBtn>
+          <PillBtn label="Done" onClick={onClose}><X className="h-[18px] w-[18px]" /></PillBtn>
+        </div>
+      </div>
+    </>
+  );
+}
+
+const ToolDivider = ({ vertical }: { vertical: boolean }) =>
+  vertical ? <div className="h-px w-5 bg-ink/10 my-1" /> : <div className="w-px h-5 bg-ink/10 mx-1" />;
 
 const GlassPill = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <div
