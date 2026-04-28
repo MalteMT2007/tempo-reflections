@@ -23,6 +23,8 @@ import {
   setScoreFavorite,
   uploadScore,
 } from "@/lib/scores";
+import { supabase } from "@/integrations/supabase/client";
+import { listProjects, createProjectScore, type Project } from "@/lib/ensembles";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -188,6 +190,9 @@ const Library = () => {
 
       {uploadOpen && (
         <UploadDialog
+          existingCategories={Array.from(
+            new Set(scores.flatMap((s) => s.tags || []).filter(Boolean))
+          ).sort((a, b) => a.localeCompare(b))}
           onClose={() => setUploadOpen(false)}
           onUploaded={() => { setUploadOpen(false); refresh(); }}
         />
@@ -462,28 +467,89 @@ const ErrorState = ({ message, onRetry }: { message: string; onRetry: () => void
 
 
 // ---------- Upload Dialog ----------
-const UploadDialog = ({ onClose, onUploaded }: { onClose: () => void; onUploaded: () => void }) => {
+type AdminEnsemble = { id: string; name: string; projects: Project[] };
+
+const UploadDialog = ({
+  existingCategories,
+  onClose,
+  onUploaded,
+}: {
+  existingCategories: string[];
+  onClose: () => void;
+  onUploaded: () => void;
+}) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [composer, setComposer] = useState("");
-  const [instrument, setInstrument] = useState("");
-  const [tags, setTags] = useState("");
+  const [category, setCategory] = useState<string>("");
+  const [newCategory, setNewCategory] = useState("");
+  const [adminEnsembles, setAdminEnsembles] = useState<AdminEnsemble[]>([]);
+  const [shareProjectId, setShareProjectId] = useState<string>(""); // "" = none
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  // Load admin ensembles + their projects
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: memberships } = await supabase
+        .from("ensemble_members")
+        .select("ensemble_id, role, ensembles:ensemble_id(id, name)")
+        .eq("user_id", user.id)
+        .eq("role", "admin");
+      const list: AdminEnsemble[] = [];
+      for (const m of (memberships ?? []) as any[]) {
+        const ens = m.ensembles;
+        if (!ens) continue;
+        try {
+          const projects = await listProjects(ens.id);
+          list.push({ id: ens.id, name: ens.name, projects });
+        } catch {}
+      }
+      setAdminEnsembles(list);
+    })();
+  }, []);
 
   const onSubmit = async () => {
     if (!file) { setErr("Choose a PDF file"); return; }
     if (!title.trim()) { setErr("Title is required"); return; }
+    const finalCategory = (newCategory.trim() || category).trim();
     setBusy(true); setErr(null);
     try {
-      await uploadScore({
+      const created = await uploadScore({
         file,
         title: title.trim(),
         composer: composer.trim() || undefined,
-        instrument: instrument.trim() || undefined,
-        tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+        tags: finalCategory ? [finalCategory] : [],
       });
+
+      // Optionally share to a project in an ensemble I admin
+      if (shareProjectId) {
+        const ens = adminEnsembles.find((e) =>
+          e.projects.some((p) => p.id === shareProjectId)
+        );
+        if (ens) {
+          // Share score with the ensemble (RLS lets members view)
+          await supabase.from("score_ensembles").insert({
+            score_id: created.id,
+            ensemble_id: ens.id,
+            shared_by: created.owner_id,
+          });
+          // Add as a project score referencing this score
+          await createProjectScore(shareProjectId, {
+            title: created.title,
+            composer: created.composer || undefined,
+          }).then(async (ps) => {
+            // link the score_id on project_scores
+            await supabase
+              .from("project_scores")
+              .update({ score_id: created.id })
+              .eq("id", ps.id);
+          });
+        }
+      }
       onUploaded();
     } catch (e: any) {
       setErr(e.message || "Upload failed");
@@ -494,7 +560,7 @@ const UploadDialog = ({ onClose, onUploaded }: { onClose: () => void; onUploaded
 
   return (
     <div className="fixed inset-0 z-50 bg-foreground/30 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-background border border-border rounded-2xl shadow-elev w-full max-w-md p-6">
+      <div className="bg-background border border-border rounded-2xl shadow-elev w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-[20px] font-semibold tracking-tight">Upload sheet music</h3>
           <button onClick={onClose} className="h-9 w-9 rounded-full hover:bg-muted flex items-center justify-center spring-tap">
@@ -525,9 +591,66 @@ const UploadDialog = ({ onClose, onUploaded }: { onClose: () => void; onUploaded
         <div className="space-y-3">
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-[15px]" />
           <input value={composer} onChange={(e) => setComposer(e.target.value)} placeholder="Composer (optional)" className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-[15px]" />
-          <input value={instrument} onChange={(e) => setInstrument(e.target.value)} placeholder="Instrument (optional)" className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-[14px]" />
-          <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags, comma-separated" className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-[14px]" />
         </div>
+
+        {/* Category */}
+        <div className="mt-5">
+          <p className="text-[12.5px] font-medium text-muted-foreground mb-2">Category</p>
+          {existingCategories.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {existingCategories.map((c) => {
+                const active = category === c && !newCategory.trim();
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => { setCategory(active ? "" : c); setNewCategory(""); }}
+                    className={`h-8 px-3 rounded-full text-[13px] border transition-colors ${
+                      active
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-transparent text-foreground border-border hover:bg-muted"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <input
+            value={newCategory}
+            onChange={(e) => { setNewCategory(e.target.value); if (e.target.value) setCategory(""); }}
+            placeholder={existingCategories.length ? "or new category (e.g. Orchestra, Solo, Chamber)" : "New category (e.g. Orchestra, Solo, Chamber)"}
+            className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-[14px]"
+          />
+        </div>
+
+        {/* Share to ensemble project */}
+        {adminEnsembles.length > 0 && (
+          <div className="mt-5">
+            <p className="text-[12.5px] font-medium text-muted-foreground mb-2">
+              Share to an ensemble project (optional)
+            </p>
+            <select
+              value={shareProjectId}
+              onChange={(e) => setShareProjectId(e.target.value)}
+              className="w-full bg-transparent border-b border-border focus:border-foreground outline-none py-2 text-[14px]"
+            >
+              <option value="">Don't share</option>
+              {adminEnsembles.map((ens) => (
+                <optgroup key={ens.id} label={ens.name}>
+                  {ens.projects.length === 0 ? (
+                    <option disabled value="">No projects</option>
+                  ) : (
+                    ens.projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))
+                  )}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        )}
 
         {err && <p className="text-xs text-destructive mt-3">{err}</p>}
 
@@ -542,4 +665,5 @@ const UploadDialog = ({ onClose, onUploaded }: { onClose: () => void; onUploaded
     </div>
   );
 };
+
 
