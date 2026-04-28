@@ -1,47 +1,57 @@
 ## Goal
 
-Two improvements to the reading experience:
+After the previous fix makes the bell clear when "all caught up," the Inbox shouldn't go completely empty — it should still show a "Read" history section underneath unread items so the user can revisit recent conversations and resolved invites.
 
-1. **Sticky landing in Library** — when you open a score (the "notes" view), Library remembers it. If you switch tabs in the bottom dock or close/reopen the site, returning to Library reopens that same score automatically.
-2. **Cleaner reading view** — while a score is open, hide the floating bottom dock entirely and show a small hamburger button in its place. Tapping the hamburger reveals the same nav items (Library, Ensembles, Colleagues, Rooms). The hamburger only appears in the score/notes view, never on regular pages.
+## Behavior
 
-## What changes
+- **Top section: Unread** — same as today (unread DMs, pending ensemble invites, pending room invites). Empty-state message ("All caught up.") only when there are also no read items.
+- **Below it: Read · last 30 days** — a separate section in muted/dimmed styling containing:
+  - Read DM conversations (most recent message in the last 30 days, no red dot).
+  - Resolved ensemble invites with a small `Accepted` / `Declined` label.
+  - Resolved room invites with the same label.
+- Sections are sorted by most recent activity descending. Tapping a read DM still navigates to `/messages/:other_id`. Resolved invites are non-actionable (no Accept/Decline buttons), just informational.
 
-### 1. Remember the open score (`src/pages/Library.tsx`)
+## Implementation
 
-- Persist `openScore.id` to `localStorage` under `tempo:lib-open-score` whenever a score is opened, and clear it when closed.
-- On mount, after `listMyScores()` resolves, look up the saved id; if a matching score exists, set it as `openScore` so the reader opens automatically.
-- Edge case: if the saved id no longer exists (deleted on another device), silently clear the key.
+### 1. New data helpers
 
-### 2. Signal "reader is open" globally (`src/components/ScoreReader.tsx`)
+**`src/lib/messages.ts`** — add `listRecentReadConversations(days = 30)`:
+- Selects all messages where the user is sender OR recipient, in the last 30 days.
+- For messages where user is recipient, only include those with `read_at IS NOT NULL`.
+- Group by "other party" id, take the most recent message as the preview.
+- Exclude conversations that already have unread messages (those are in the Unread section).
+- Join `profiles` for display name/avatar.
 
-- On mount, add `data-reader-open="true"` to `document.body`; remove on unmount.
-- This lets the layout react without prop-drilling.
+**`src/lib/ensembles.ts`** — add `listMyResolvedInvites(days = 30)`:
+- Returns ensemble invites with `status IN ('accepted','declined')` updated/created in the last 30 days, joined with `ensembles(name)`. RLS already restricts to admin or invitee — we further filter client-side to invitee-only so admins don't see invites they sent.
 
-### 3. Conditional dock vs hamburger (`src/layouts/AppLayout.tsx` + `src/components/BottomDock.tsx`)
+**`src/lib/social.ts`** — add `listMyResolvedRoomInvites(days = 30)`:
+- Returns room invites for the current user (`invitee_id = me`) where `status IN ('accepted','declined')` and `responded_at >= now() - 30 days`, joined with `rooms(name, avatar_url)`.
 
-- In `AppLayout`, track reader-open state via a small effect that watches the body attribute (MutationObserver, or a tiny custom event dispatched from ScoreReader).
-- When reader is open:
-  - Hide `<BottomDock />`.
-  - Render a new `<ReaderHamburger />` in its place — a single floating circular button (bottom-right, safe-area aware) with a `Menu` icon.
-  - Tapping it opens a small popover/sheet listing the same four destinations (Library, Ensembles, Colleagues, Rooms) with their icons. Selecting one navigates and closes the menu (which also closes the reader since route changes).
-- When reader is closed: render `<BottomDock />` as today.
+### 2. Inbox UI (`src/pages/Inbox.tsx`)
 
-### 4. New component: `src/components/ReaderHamburger.tsx`
+- Fetch the three new "read" lists in parallel alongside the existing three "unread" lists.
+- Render structure:
+  ```
+  <Unread items as today>
+  
+  --- "Recent" header (only shown when read items exist) ---
+  
+  <Read DMs — dimmed avatar, no red dot>
+  <Resolved ensemble invites — name + "Accepted"/"Declined" pill>
+  <Resolved room invites — same>
+  ```
+- Empty-state ("All caught up.") only when unread total == 0 AND read list is also empty.
+- Read items use existing `glass` card style but with `opacity-70` / muted text colors so they read as history.
+- Add the same realtime subscriptions to refresh history when invites or DMs change.
 
-- Reuses the same items array as `BottomDock`.
-- Visual: 44×44 rounded-full button, glass-morphism style matching the dock, positioned bottom-right with `env(safe-area-inset-bottom)`.
-- Uses an existing `Popover` (from `components/ui/popover.tsx`) for the menu.
+### 3. No schema changes needed
 
-## Technical notes
-
-- No backend or schema changes — purely client state (`localStorage`) and presentation.
-- No changes to ScoreReader internals beyond the body-attribute toggle.
-- The hamburger lives outside ScoreReader so it stays clickable above the reader's full-screen overlay (z-index above the reader's chrome).
+All filtering is done with existing columns (`read_at`, `status`, `responded_at`, `created_at`). RLS already permits viewing these rows. No migration required.
 
 ## Files touched
 
-- `src/pages/Library.tsx` — persist + restore last-opened score
-- `src/components/ScoreReader.tsx` — set/unset `data-reader-open` on body
-- `src/layouts/AppLayout.tsx` — switch between dock and hamburger
-- `src/components/ReaderHamburger.tsx` — new file
+- `src/lib/messages.ts` — new `listRecentReadConversations`.
+- `src/lib/ensembles.ts` — new `listMyResolvedInvites`.
+- `src/lib/social.ts` — new `listMyResolvedRoomInvites`.
+- `src/pages/Inbox.tsx` — fetch + render the Read section.
