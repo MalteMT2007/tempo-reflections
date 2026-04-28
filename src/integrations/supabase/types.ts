@@ -905,6 +905,7 @@ export type Database = {
         Row: {
           composer: string | null
           created_at: string
+          favorite: boolean
           file_path: string
           id: string
           instrument: string | null
@@ -918,6 +919,7 @@ export type Database = {
         Insert: {
           composer?: string | null
           created_at?: string
+          favorite?: boolean
           file_path: string
           id?: string
           instrument?: string | null
@@ -931,6 +933,7 @@ export type Database = {
         Update: {
           composer?: string | null
           created_at?: string
+          favorite?: boolean
           file_path?: string
           id?: string
           instrument?: string | null

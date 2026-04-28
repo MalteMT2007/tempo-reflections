@@ -10,6 +10,7 @@ export type Score = {
   file_path: string;
   page_count: number;
   size_bytes: number;
+  favorite: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -50,9 +51,18 @@ export async function listMyScores(): Promise<Score[]> {
   const { data, error } = await supabase
     .from("scores")
     .select("*")
+    .order("favorite", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as Score[];
+}
+
+export async function setScoreFavorite(id: string, favorite: boolean) {
+  const { error } = await supabase
+    .from("scores")
+    .update({ favorite })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export async function getScore(id: string): Promise<Score | null> {

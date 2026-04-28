@@ -9,14 +9,22 @@ import {
   Upload,
   LayoutGrid,
   List as ListIcon,
+  MoreHorizontal,
+  Star,
 } from "lucide-react";
 import {
   Score,
   deleteScore,
   listMyScores,
-  listSessionsForScore,
+  setScoreFavorite,
   uploadScore,
 } from "@/lib/scores";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScoreReader } from "@/components/ScoreReader";
 import { PageHeader } from "@/components/PageHeader";
 import { ProgressHeaderCard } from "@/components/practice/ProgressHeaderCard";
@@ -33,7 +41,7 @@ const Library = () => {
   );
   const [uploadOpen, setUploadOpen] = useState(false);
   const [openScore, setOpenScore] = useState<Score | null>(null);
-  const [detail, setDetail] = useState<Score | null>(null);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -116,13 +124,23 @@ const Library = () => {
         ) : view === "grid" ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-6">
             {filtered.map((s) => (
-              <ScoreCardGrid key={s.id} score={s} onOpen={() => setDetail(s)} />
+              <ScoreCardGrid
+                key={s.id}
+                score={s}
+                onOpen={() => setOpenScore(s)}
+                onChanged={refresh}
+              />
             ))}
           </div>
         ) : (
           <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
             {filtered.map((s) => (
-              <ScoreRow key={s.id} score={s} onOpen={() => setDetail(s)} />
+              <ScoreRow
+                key={s.id}
+                score={s}
+                onOpen={() => setOpenScore(s)}
+                onChanged={refresh}
+              />
             ))}
           </ul>
         )}
@@ -132,15 +150,6 @@ const Library = () => {
         <UploadDialog
           onClose={() => setUploadOpen(false)}
           onUploaded={() => { setUploadOpen(false); refresh(); }}
-        />
-      )}
-
-      {detail && (
-        <ScoreDetail
-          score={detail}
-          onClose={() => setDetail(null)}
-          onOpen={() => { const s = detail; setDetail(null); setOpenScore(s); }}
-          onDeleted={() => { setDetail(null); refresh(); }}
         />
       )}
 
@@ -179,40 +188,114 @@ const ViewToggle = ({ view, onChange }: { view: View; onChange: (v: View) => voi
   </div>
 );
 
+// ---------- Score actions menu ----------
+const ScoreActionsMenu = ({
+  score,
+  onChanged,
+  className = "",
+}: {
+  score: Score;
+  onChanged: () => void;
+  className?: string;
+}) => {
+  const toggleFav = async (e: Event) => {
+    e.preventDefault();
+    try {
+      await setScoreFavorite(score.id, !score.favorite);
+      onChanged();
+    } catch {}
+  };
+  const remove = async (e: Event) => {
+    e.preventDefault();
+    if (!confirm(`Delete "${score.title}"?`)) return;
+    try {
+      await deleteScore(score);
+      onChanged();
+    } catch {}
+  };
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          aria-label="More actions"
+          className={`h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-muted-foreground hover:text-foreground spring-tap ${className}`}
+        >
+          <MoreHorizontal className="h-4 w-4" strokeWidth={2} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuItem onSelect={toggleFav}>
+          <Star className={`h-4 w-4 mr-2 ${score.favorite ? "fill-current" : ""}`} />
+          {score.favorite ? "Remove favorite" : "Favorite"}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={remove} className="text-destructive focus:text-destructive">
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
 // ---------- Compact grid card ----------
-const ScoreCardGrid = ({ score, onOpen }: { score: Score; onOpen: () => void }) => {
+const ScoreCardGrid = ({
+  score,
+  onOpen,
+  onChanged,
+}: {
+  score: Score;
+  onOpen: () => void;
+  onChanged: () => void;
+}) => {
   const cover = (score as any).cover_url as string | undefined;
   return (
-    <button onClick={onOpen} className="group text-left spring-tap focus:outline-none">
-      <div className="aspect-[3/4] rounded-xl overflow-hidden relative bg-muted border border-border">
-        {cover ? (
-          <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 grid place-items-center">
-            <FileMusic className="h-7 w-7 text-muted-foreground/70" strokeWidth={1.5} />
-          </div>
-        )}
+    <div className="group relative">
+      <button onClick={onOpen} className="w-full text-left spring-tap focus:outline-none">
+        <div className="aspect-[3/4] rounded-xl overflow-hidden relative bg-muted border border-border">
+          {cover ? (
+            <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center">
+              <FileMusic className="h-7 w-7 text-muted-foreground/70" strokeWidth={1.5} />
+            </div>
+          )}
+          {score.favorite && (
+            <Star className="absolute top-2 left-2 h-3.5 w-3.5 fill-foreground text-foreground drop-shadow" />
+          )}
+        </div>
+        <div className="px-0.5 pt-3 pr-8">
+          <p className="text-[14px] font-medium text-foreground truncate leading-tight">
+            {score.title}
+          </p>
+          {score.composer && (
+            <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">{score.composer}</p>
+          )}
+        </div>
+      </button>
+      <div className="absolute right-0 bottom-0">
+        <ScoreActionsMenu score={score} onChanged={onChanged} />
       </div>
-      <div className="px-0.5 pt-3">
-        <p className="text-[14px] font-medium text-foreground truncate leading-tight">
-          {score.title}
-        </p>
-        {score.composer && (
-          <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">{score.composer}</p>
-        )}
-      </div>
-    </button>
+    </div>
   );
 };
 
 // ---------- List row ----------
-const ScoreRow = ({ score, onOpen }: { score: Score; onOpen: () => void }) => {
+const ScoreRow = ({
+  score,
+  onOpen,
+  onChanged,
+}: {
+  score: Score;
+  onOpen: () => void;
+  onChanged: () => void;
+}) => {
   const cover = (score as any).cover_url as string | undefined;
   return (
-    <li>
+    <li className="flex items-center gap-2 pr-2 hover:bg-muted/60 transition-colors">
       <button
         onClick={onOpen}
-        className="w-full text-left flex items-center gap-4 px-4 py-3 hover:bg-muted/60 transition-colors spring-tap"
+        className="flex-1 min-w-0 text-left flex items-center gap-4 px-4 py-3 spring-tap"
       >
         <div className="h-12 w-9 rounded-md overflow-hidden bg-muted border border-border shrink-0 grid place-items-center">
           {cover ? (
@@ -222,9 +305,12 @@ const ScoreRow = ({ score, onOpen }: { score: Score; onOpen: () => void }) => {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-medium text-foreground truncate leading-tight">
-            {score.title}
-          </p>
+          <div className="flex items-center gap-1.5">
+            {score.favorite && <Star className="h-3 w-3 fill-foreground text-foreground shrink-0" />}
+            <p className="text-[15px] font-medium text-foreground truncate leading-tight">
+              {score.title}
+            </p>
+          </div>
           {score.composer && (
             <p className="text-[13px] text-muted-foreground truncate mt-0.5">{score.composer}</p>
           )}
@@ -235,6 +321,7 @@ const ScoreRow = ({ score, onOpen }: { score: Score; onOpen: () => void }) => {
           </span>
         )}
       </button>
+      <ScoreActionsMenu score={score} onChanged={onChanged} />
     </li>
   );
 };
@@ -387,88 +474,3 @@ const UploadDialog = ({ onClose, onUploaded }: { onClose: () => void; onUploaded
   );
 };
 
-// ---------- Score detail panel ----------
-const ScoreDetail = ({
-  score,
-  onClose,
-  onOpen,
-  onDeleted,
-}: {
-  score: Score;
-  onClose: () => void;
-  onOpen: () => void;
-  onDeleted: () => void;
-}) => {
-  const [sessions, setSessions] = useState<any[]>([]);
-
-  useEffect(() => {
-    listSessionsForScore(score.id).then(setSessions).catch(() => {});
-  }, [score.id]);
-
-  const remove = async () => {
-    if (!confirm("Delete this score and its annotations?")) return;
-    await deleteScore(score);
-    onDeleted();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-foreground/30 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
-      <div className="bg-background border border-border rounded-t-2xl sm:rounded-2xl shadow-elev w-full max-w-md p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="min-w-0">
-            <h3 className="text-[22px] font-semibold tracking-tight truncate">{score.title}</h3>
-            {score.composer && <p className="text-[14px] text-muted-foreground truncate mt-0.5">{score.composer}</p>}
-            <p className="text-[11px] text-muted-foreground mt-2">
-              {score.instrument || "—"} · {score.page_count || "?"} pages · {new Date(score.created_at).toLocaleDateString()}
-            </p>
-          </div>
-          <button onClick={onClose} className="h-9 w-9 rounded-full hover:bg-muted flex items-center justify-center shrink-0 spring-tap">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {score.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {score.tags.map((t) => (
-              <span key={t} className="text-[11px] text-muted-foreground border border-border rounded-full px-2.5 py-0.5">{t}</span>
-            ))}
-          </div>
-        )}
-
-        {sessions.length > 0 && (
-          <div className="mb-4">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground mb-2">Recent sessions</p>
-            <ul className="space-y-1">
-              {sessions.slice(0, 5).map((row: any) => {
-                const ps = row.practice_sessions;
-                if (!ps) return null;
-                return (
-                  <li key={row.session_id} className="text-[12.5px] text-muted-foreground flex justify-between">
-                    <span>{new Date(ps.started_at).toLocaleDateString()}</span>
-                    <span className="tabular">{Math.round(ps.duration_sec / 60)} min</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <button
-            onClick={onOpen}
-            className="flex-1 bg-foreground text-background rounded-full py-3 text-[14px] font-medium spring-tap"
-          >
-            Open
-          </button>
-          <button
-            onClick={remove}
-            className="h-12 w-12 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/40 spring-tap"
-            aria-label="Delete"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
