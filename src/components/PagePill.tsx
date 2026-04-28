@@ -1,13 +1,13 @@
 import { ReactNode } from "react";
-import { PageOverlay } from "./PageOverlay";
 
 /**
- * Centered glass pill container, matching the Home landing-pill aesthetic.
- * Now an alias of PageOverlay so all pages get the tap-to-reader scrim
- * behaviour automatically.
+ * Page content emitter. AppLayout already provides the centered pill
+ * column + blurred scrim for every non-reader route, so pages just need
+ * to render their pills as direct children. Kept as a passthrough so
+ * existing pages don't have to change their JSX shape.
  */
 export function PagePillFrame({ children }: { children: ReactNode }) {
-  return <PageOverlay>{children}</PageOverlay>;
+  return <>{children}</>;
 }
 
 export function GlassPill({
