@@ -26,6 +26,7 @@ import {
   type Score,
 } from "@/lib/scores";
 import { useAuth } from "@/contexts/AuthContext";
+import { DrawingCanvas, type CompletedStroke } from "@/components/drawing/DrawingCanvas";
 
 type Tool = "pan" | "draw" | "text" | "erase";
 
