@@ -70,23 +70,19 @@ const Home = () => {
   return (
     <div className="min-h-[calc(100vh-3.5rem)] pb-32">
       <div className="max-w-2xl mx-auto px-5 pt-12 sm:pt-16">
-        {/* Inbox tile */}
+        {/* Floating liquid-glass Inbox — mirrors profile top-right */}
         <Link
           to="/inbox"
           aria-label="Open inbox"
-          className="relative inline-flex items-center gap-2 text-[12.5px] uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground transition-colors mb-8"
+          className="fixed z-40 h-10 w-10 grid place-items-center rounded-full spring-tap bg-background/40 backdrop-blur-2xl backdrop-saturate-150 border border-white/15 shadow-[0_4px_16px_-6px_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.18)] hover:bg-background/55 transition-colors"
+          style={{
+            top: "calc(env(safe-area-inset-top, 0px) + 14px)",
+            left: "calc(env(safe-area-inset-left, 0px) + 14px)",
+          }}
         >
-          <span className="relative inline-grid place-items-center h-7 w-7 rounded-full bg-muted">
-            <Bell className="h-[15px] w-[15px]" strokeWidth={1.8} />
-            {pending > 0 && (
-              <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-[#FF3B30]" />
-            )}
-          </span>
-          Inbox
+          <Bell className="h-[16px] w-[16px] text-foreground" strokeWidth={1.8} />
           {pending > 0 && (
-            <span className="text-foreground/80 normal-case tracking-normal text-[12.5px]">
-              · {pending} new
-            </span>
+            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#FF3B30] ring-2 ring-background/60" />
           )}
         </Link>
 
