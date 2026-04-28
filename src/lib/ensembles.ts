@@ -154,7 +154,7 @@ export async function listMyPendingInvites(): Promise<(Invite & { ensemble?: { n
   return rows.map(r => ({ ...r, ensemble: map.get(r.ensemble_id) ?? null }));
 }
 export async function declineEnsembleInvite(id: string) {
-  const { error } = await supabase.from("ensemble_invites").update({ status: "revoked" }).eq("id", id);
+  const { error } = await supabase.from("ensemble_invites").update({ status: "declined" as any }).eq("id", id);
   if (error) throw error;
 }
 
