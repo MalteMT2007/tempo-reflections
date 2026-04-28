@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Search, Loader2, UserPlus, UserMinus } from "lucide-react";
-import { AppMenu } from "@/components/AppMenu";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { discoverProfiles, followUser, unfollowUser, listFollowing } from "@/lib/api";
 import { toast } from "sonner";
@@ -69,7 +69,7 @@ const Discover = () => {
 
   return (
     <main className="min-h-screen pb-20">
-      <AppMenu />
+
       <div className="max-w-md mx-auto px-6 pt-10">
         <Link to="/" className="inline-flex items-center gap-2 text-xs text-ink-soft hover:text-ink mb-6">
           <ArrowLeft className="h-3 w-3" /> Back

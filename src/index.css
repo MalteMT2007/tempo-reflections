@@ -1,84 +1,100 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Practice — a calm companion for musicians.
-   Palette: warm ivory paper, deep ink, muted sepia accents.
-   All colors HSL.
+/* Tempo — Apple-native aesthetic.
+   Clean type, soft surfaces, generous spacing. All colors HSL.
 */
 
 @layer base {
   :root {
-    --background: 38 33% 96%;
-    --foreground: 25 25% 14%;
+    --background: 0 0% 100%;
+    --foreground: 220 13% 9%;
 
-    --card: 38 40% 98%;
-    --card-foreground: 25 25% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 9%;
 
-    --popover: 38 40% 98%;
-    --popover-foreground: 25 25% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 9%;
 
-    --primary: 25 28% 18%;
-    --primary-foreground: 38 33% 96%;
+    --primary: 211 100% 50%;          /* Apple blue */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 35 22% 90%;
-    --secondary-foreground: 25 25% 18%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 13% 14%;
 
-    --muted: 35 20% 92%;
-    --muted-foreground: 28 12% 42%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 22 45% 48%;
-    --accent-foreground: 38 33% 96%;
+    --accent: 220 14% 94%;
+    --accent-foreground: 220 13% 14%;
 
-    --destructive: 0 50% 45%;
-    --destructive-foreground: 38 33% 96%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 32 18% 85%;
-    --input: 32 18% 85%;
-    --ring: 25 28% 18%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 211 100% 50%;
 
-    --radius: 0.375rem;
+    --radius: 0.75rem;
 
-    /* Practice-specific tokens */
-    --ink: 25 30% 12%;
-    --ink-soft: 25 18% 32%;
-    --paper: 38 38% 97%;
-    --paper-deep: 35 25% 92%;
-    --sepia: 22 45% 48%;
-    --sepia-soft: 28 35% 70%;
-    --gold: 38 55% 55%;
+    /* Sidebar (shadcn) */
+    --sidebar-background: 220 14% 98%;
+    --sidebar-foreground: 220 13% 14%;
+    --sidebar-primary: 211 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 94%;
+    --sidebar-accent-foreground: 220 13% 14%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 211 100% 50%;
 
-    --gradient-paper: linear-gradient(180deg, hsl(38 38% 97%) 0%, hsl(35 28% 94%) 100%);
-    --gradient-ink: linear-gradient(180deg, hsl(25 28% 18%) 0%, hsl(25 35% 10%) 100%);
+    /* Legacy aliases (kept for older components) */
+    --ink: 220 13% 9%;
+    --ink-soft: 220 9% 46%;
+    --paper: 0 0% 100%;
+    --paper-deep: 220 14% 96%;
+    --sepia: 211 100% 50%;
+    --sepia-soft: 211 70% 75%;
+    --gold: 38 92% 50%;
 
-    --shadow-soft: 0 1px 2px hsl(25 25% 14% / 0.04), 0 8px 24px -12px hsl(25 25% 14% / 0.08);
-    --shadow-elev: 0 4px 12px -4px hsl(25 25% 14% / 0.12), 0 16px 40px -16px hsl(25 25% 14% / 0.16);
+    --gradient-paper: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 14% 98%) 100%);
+    --gradient-ink: linear-gradient(180deg, hsl(220 13% 14%) 0%, hsl(220 13% 9%) 100%);
+
+    --shadow-soft: 0 1px 2px hsl(220 13% 9% / 0.04), 0 8px 24px -12px hsl(220 13% 9% / 0.08);
+    --shadow-elev: 0 4px 12px -4px hsl(220 13% 9% / 0.10), 0 16px 40px -16px hsl(220 13% 9% / 0.14);
 
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    --background: 25 18% 8%;
-    --foreground: 38 30% 92%;
-    --card: 25 18% 10%;
-    --card-foreground: 38 30% 92%;
-    --popover: 25 18% 10%;
-    --popover-foreground: 38 30% 92%;
-    --primary: 38 30% 92%;
-    --primary-foreground: 25 28% 14%;
-    --secondary: 25 12% 16%;
-    --secondary-foreground: 38 30% 92%;
-    --muted: 25 12% 14%;
-    --muted-foreground: 35 15% 60%;
-    --accent: 28 50% 60%;
-    --accent-foreground: 25 28% 12%;
-    --destructive: 0 50% 50%;
-    --destructive-foreground: 38 30% 92%;
-    --border: 25 12% 18%;
-    --input: 25 12% 18%;
-    --ring: 38 30% 92%;
+    --background: 220 13% 7%;
+    --foreground: 220 13% 96%;
+    --card: 220 13% 10%;
+    --card-foreground: 220 13% 96%;
+    --popover: 220 13% 10%;
+    --popover-foreground: 220 13% 96%;
+    --primary: 211 100% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 13% 14%;
+    --secondary-foreground: 220 13% 96%;
+    --muted: 220 13% 14%;
+    --muted-foreground: 220 9% 65%;
+    --accent: 220 13% 16%;
+    --accent-foreground: 220 13% 96%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 18%;
+    --input: 220 13% 18%;
+    --ring: 211 100% 55%;
+
+    --sidebar-background: 220 13% 9%;
+    --sidebar-foreground: 220 13% 96%;
+    --sidebar-primary: 211 100% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 13% 14%;
+    --sidebar-accent-foreground: 220 13% 96%;
+    --sidebar-border: 220 13% 18%;
+    --sidebar-ring: 211 100% 55%;
   }
 }
 
@@ -88,25 +104,33 @@
   }
 
   html {
-    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  html, body, #root {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
-    background-image: var(--gradient-paper);
-    background-attachment: fixed;
+    font-feature-settings: "kern", "liga", "ss01";
+    letter-spacing: -0.01em;
   }
 
-  h1, h2, h3, .font-serif {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-feature-settings: "liga", "dlig";
+  h1, h2, h3, h4, h5, h6, .font-serif {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    letter-spacing: -0.02em;
+    font-weight: 600;
   }
 }
 
 @layer utilities {
   .font-serif {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    /* Backwards-compat — now resolves to system stack */
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    letter-spacing: -0.02em;
   }
   .text-balance {
     text-wrap: balance;
@@ -115,8 +139,6 @@
     font-variant-numeric: tabular-nums;
   }
   .paper-grain {
-    background-image:
-      radial-gradient(hsl(25 25% 14% / 0.025) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-image: none;
   }
 }

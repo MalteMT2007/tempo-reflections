@@ -12,8 +12,24 @@ export default {
     },
     extend: {
       fontFamily: {
-        serif: ['"Cormorant Garamond"', "Georgia", "serif"],
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"SF Pro Display"',
+          '"SF Pro Text"',
+          '"Helvetica Neue"',
+          '"Segoe UI"',
+          "Roboto",
+          "sans-serif",
+        ],
+        serif: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          '"SF Pro Display"',
+          '"SF Pro Text"',
+          '"Helvetica Neue"',
+          "sans-serif",
+        ],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -62,6 +78,16 @@ export default {
           soft: "hsl(var(--sepia-soft))",
         },
         gold: "hsl(var(--gold))",
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
