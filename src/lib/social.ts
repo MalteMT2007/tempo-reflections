@@ -295,6 +295,25 @@ export async function leaveRoom(roomId: string) {
   if (error) throw error;
 }
 
+export async function updateRoom(
+  roomId: string,
+  patch: { name?: string; description?: string | null; avatar_url?: string | null }
+) {
+  const { error } = await supabase.from("rooms").update(patch).eq("id", roomId);
+  if (error) throw error;
+}
+
+export async function uploadRoomAvatar(roomId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${roomId}/avatar-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("room-avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from("room-avatars").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 // ===== Room messages =====
 export type RoomMessage = {
   id: string;
