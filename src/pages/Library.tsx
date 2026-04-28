@@ -88,26 +88,48 @@ const Library = () => {
     document.title = "Library — Tempo";
   }, []);
 
+  // Handle ?open=<scoreId> from global search
+  useEffect(() => {
+    const id = searchParams.get("open");
+    if (!id || scores.length === 0) return;
+    const match = scores.find((s) => s.id === id);
+    if (match) {
+      setOpenScore(match);
+      searchParams.delete("open");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, scores, setSearchParams]);
+
   // Persist the currently open score so it reopens on next visit
   useEffect(() => {
-    if (openScore) localStorage.setItem(OPEN_SCORE_KEY, openScore.id);
-    else localStorage.removeItem(OPEN_SCORE_KEY);
+    if (openScore) {
+      localStorage.setItem(OPEN_SCORE_KEY, openScore.id);
+      markScoreOpened(openScore.id);
+    } else {
+      localStorage.removeItem(OPEN_SCORE_KEY);
+    }
   }, [openScore]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return scores;
-    return scores.filter(
-      (s) =>
-        s.title.toLowerCase().includes(q) ||
-        (s.composer || "").toLowerCase().includes(q) ||
-        s.tags.some((t) => t.toLowerCase().includes(q))
-    );
-  }, [scores, query]);
+  const sorted = useMemo(() => {
+    const arr = [...scores];
+    if (sort === "az") {
+      arr.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+    } else if (sort === "za") {
+      arr.sort((a, b) => b.title.localeCompare(a.title, undefined, { sensitivity: "base" }));
+    } else {
+      // recent: by last opened (local), fallback to updated_at/created_at
+      arr.sort((a, b) => {
+        const ao = getOpenedAt(a.id) || new Date(a.updated_at || a.created_at).getTime();
+        const bo = getOpenedAt(b.id) || new Date(b.updated_at || b.created_at).getTime();
+        return bo - ao;
+      });
+    }
+    return arr;
+  }, [scores, sort]);
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] pb-24">
-      <div className="max-w-4xl mx-auto px-5 sm:px-6 pt-8 sm:pt-10">
+      <div className="max-w-4xl mx-auto px-5 sm:px-6 pt-12 sm:pt-16">
         <PageHeader
           title="Library"
           trailing={
@@ -124,20 +146,12 @@ const Library = () => {
           }
         />
 
-        {/* Progress Header — gateway to practice history */}
-        <div className="mt-6">
-          <ProgressHeaderCard onOpen={() => setHistoryOpen(true)} />
-        </div>
-
-        {/* Search */}
-        <div className="relative mt-6 mb-6">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search title or composer"
-            className="w-full pl-11 pr-3 h-11 rounded-2xl bg-muted text-[15px] outline-none border border-transparent focus:border-border placeholder:text-muted-foreground"
-          />
+        {/* Sort */}
+        <div className="mt-6 mb-4 flex items-center justify-between">
+          <p className="text-[12.5px] text-muted-foreground">
+            {scores.length} {scores.length === 1 ? "score" : "scores"}
+          </p>
+          <SortMenu sort={sort} onChange={setSort} />
         </div>
 
         {/* Content */}
@@ -145,14 +159,11 @@ const Library = () => {
           view === "grid" ? <LoadingGrid /> : <LoadingList />
         ) : error ? (
           <ErrorState message={error} onRetry={refresh} />
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            empty={scores.length === 0}
-            onAdd={() => setUploadOpen(true)}
-          />
+        ) : sorted.length === 0 ? (
+          <EmptyState empty onAdd={() => setUploadOpen(true)} />
         ) : view === "grid" ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-6">
-            {filtered.map((s) => (
+            {sorted.map((s) => (
               <ScoreCardGrid
                 key={s.id}
                 score={s}
@@ -163,7 +174,7 @@ const Library = () => {
           </div>
         ) : (
           <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
-            {filtered.map((s) => (
+            {sorted.map((s) => (
               <ScoreRow
                 key={s.id}
                 score={s}
@@ -185,13 +196,42 @@ const Library = () => {
       {openScore && (
         <ScoreReader score={openScore} onClose={() => setOpenScore(null)} />
       )}
-
-      {historyOpen && <PracticeHistoryOverlay onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 };
 
 export default Library;
+
+// ---------- Sort menu ----------
+const SortMenu = ({ sort, onChange }: { sort: Sort; onChange: (s: Sort) => void }) => {
+  const Icon = sort === "az" ? ArrowDownAZ : sort === "za" ? ArrowUpAZ : Clock;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label="Sort"
+          className="inline-flex items-center gap-1.5 h-9 pl-3 pr-2.5 rounded-full bg-muted text-[13px] text-foreground spring-tap"
+        >
+          <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+          {SORT_LABEL[sort]}
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onSelect={() => onChange("recent")}>
+          <Clock className="h-4 w-4 mr-2" /> Recently opened
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onChange("az")}>
+          <ArrowDownAZ className="h-4 w-4 mr-2" /> A–Z
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onChange("za")}>
+          <ArrowUpAZ className="h-4 w-4 mr-2" /> Z–A
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
 
 // ---------- View toggle ----------
 const ViewToggle = ({ view, onChange }: { view: View; onChange: (v: View) => void }) => (
