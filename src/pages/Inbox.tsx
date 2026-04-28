@@ -6,24 +6,20 @@ import {
   listMyPendingInvites,
   acceptInvite,
   declineEnsembleInvite,
-  listMyResolvedInvites,
   type ResolvedEnsembleInvite,
 } from "@/lib/ensembles";
 import {
   listMyInvites,
   respondToInvite,
-  listMyResolvedRoomInvites,
   type RoomInvite,
-  type ResolvedRoomInvite,
 } from "@/lib/social";
 import {
   listUnreadConversations,
-  listRecentReadConversations,
   type UnreadConversation,
-  type ReadConversation,
 } from "@/lib/messages";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { PagePillFrame, GlassPill, PillSectionHeader } from "@/components/PagePill";
 
 type EnsembleInviteRow = Awaited<ReturnType<typeof listMyPendingInvites>>[number];
 
@@ -33,28 +29,19 @@ export default function Inbox() {
   const [ensembleInvites, setEnsembleInvites] = useState<EnsembleInviteRow[]>([]);
   const [roomInvites, setRoomInvites] = useState<RoomInvite[]>([]);
   const [unreadDMs, setUnreadDMs] = useState<UnreadConversation[]>([]);
-  const [readDMs, setReadDMs] = useState<ReadConversation[]>([]);
-  const [resolvedEnsembles, setResolvedEnsembles] = useState<ResolvedEnsembleInvite[]>([]);
-  const [resolvedRooms, setResolvedRooms] = useState<ResolvedRoomInvite[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [ens, rooms, dms, readDms, resEns, resRooms] = await Promise.all([
+      const [ens, rooms, dms] = await Promise.all([
         listMyPendingInvites(),
         listMyInvites(),
         listUnreadConversations(),
-        listRecentReadConversations(30),
-        listMyResolvedInvites(30),
-        listMyResolvedRoomInvites(30),
       ]);
       setEnsembleInvites(ens);
       setRoomInvites(rooms);
       setUnreadDMs(dms);
-      setReadDMs(readDms);
-      setResolvedEnsembles(resEns);
-      setResolvedRooms(resRooms);
     } catch (e: any) { toast.error(e.message); }
     finally { setLoading(false); }
   };
@@ -91,163 +78,97 @@ export default function Inbox() {
   };
 
   const unreadTotal = ensembleInvites.length + roomInvites.length + unreadDMs.length;
-  const readTotal = readDMs.length + resolvedEnsembles.length + resolvedRooms.length;
+  const dmTop = unreadDMs.slice(0, 3);
 
   return (
-    <div className="max-w-2xl mx-auto px-6 md:px-10 py-10 md:py-14">
-      <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight mb-8">Inbox</h1>
+    <PagePillFrame>
+      <GlassPill>
+        <PillSectionHeader icon={InboxIcon} label="Inbox" count={unreadTotal} />
+        <h1 className="mt-1.5 text-[28px] font-light tracking-tight leading-tight">
+          {loading ? "…" : unreadTotal === 0 ? "All caught up." : "What's new."}
+        </h1>
+      </GlassPill>
 
-      {loading ? (
-        <div className="text-sm text-foreground/40">Loading…</div>
-      ) : unreadTotal === 0 && readTotal === 0 ? (
-        <div className="glass rounded-3xl p-12 text-center">
-          <InboxIcon className="h-10 w-10 mx-auto text-foreground/30 mb-3" />
-          <p className="text-[14px] text-foreground/45">All caught up.</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {unreadTotal > 0 && (
-            <div className="space-y-3">
-              {unreadDMs.map((c) => {
-                const name = c.profile?.display_name || c.profile?.username || "Message";
-                const initial = name.charAt(0).toUpperCase();
-                return (
+      {!loading && unreadDMs.length > 0 && (
+        <GlassPill>
+          <PillSectionHeader icon={MessageCircle} label="Messages" count={unreadDMs.length} />
+          <ul className="mt-2 divide-y divide-border/40">
+            {dmTop.map((c) => {
+              const name = c.profile?.display_name || c.profile?.username || "Message";
+              return (
+                <li key={`dm-${c.other_id}`}>
                   <button
-                    key={`dm-${c.other_id}`}
                     onClick={() => navigate(`/messages/${c.other_id}`)}
-                    className="w-full glass rounded-3xl p-4 flex items-center gap-3 text-left spring-tap"
+                    className="w-full flex items-center gap-3 py-2.5 text-left spring-tap"
                   >
-                    <div className="h-12 w-12 rounded-full overflow-hidden glass grid place-items-center shrink-0 relative">
+                    <div className="h-9 w-9 shrink-0 rounded-full overflow-hidden bg-muted/60 grid place-items-center relative">
                       {c.profile?.avatar_url ? (
                         <img src={c.profile.avatar_url} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <span className="text-[15px] font-semibold">{initial}</span>
+                        <span className="text-[12px] font-semibold">{name.charAt(0).toUpperCase()}</span>
                       )}
-                      <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-[#FF3B30] ring-2 ring-background" />
+                      <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[#FF3B30] ring-2 ring-background" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <MessageCircle className="h-3.5 w-3.5 text-foreground/40 shrink-0" />
-                        <span className="text-[15px] font-medium truncate">{name}</span>
-                      </div>
-                      <div className="text-[12.5px] text-foreground/55 truncate">{c.last_message}</div>
-                    </div>
-                    <div className="text-[11px] text-foreground/40 shrink-0">
-                      {c.unread_count > 1 ? `${c.unread_count} new` : "new"}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[14px] font-medium truncate leading-tight">{name}</p>
+                      <p className="text-[12px] text-muted-foreground truncate">{c.last_message}</p>
                     </div>
                   </button>
-                );
-              })}
-
-              {ensembleInvites.map((inv) => (
-                <div key={inv.id} className="glass rounded-3xl p-4 flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-2xl glass grid place-items-center shrink-0">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[15px] font-medium truncate">{inv.ensemble?.name ?? "Ensemble"}</div>
-                    <div className="text-[12.5px] text-foreground/45 capitalize">{inv.role.replace("_", " ")}</div>
-                  </div>
-                  <button onClick={() => onDeclineEnsemble(inv)} className="h-9 w-9 rounded-full glass-button grid place-items-center" aria-label="Decline">
-                    <X className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => onAcceptEnsemble(inv)} className="h-9 w-9 rounded-full pill-primary grid place-items-center" aria-label="Accept">
-                    <Check className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              {roomInvites.map((inv) => (
-                <div key={inv.id} className="glass rounded-3xl p-4 flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-2xl glass grid place-items-center shrink-0">
-                    <Users2 className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[15px] font-medium truncate">{inv.room?.name ?? "Room"}</div>
-                  </div>
-                  <button onClick={() => onDeclineRoom(inv)} className="h-9 w-9 rounded-full glass-button grid place-items-center" aria-label="Decline">
-                    <X className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => onAcceptRoom(inv)} className="h-9 w-9 rounded-full pill-primary grid place-items-center" aria-label="Accept">
-                    <Check className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {readTotal > 0 && (
-            <div>
-              <div className="flex items-center gap-3 mb-3 px-1">
-                <span className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">Recent · last 30 days</span>
-                <span className="flex-1 h-px bg-border/60" />
-              </div>
-              <div className="space-y-3 opacity-80">
-                {readDMs.map((c) => {
-                  const name = c.profile?.display_name || c.profile?.username || "Message";
-                  const initial = name.charAt(0).toUpperCase();
-                  return (
-                    <button
-                      key={`read-dm-${c.other_id}`}
-                      onClick={() => navigate(`/messages/${c.other_id}`)}
-                      className="w-full glass rounded-3xl p-4 flex items-center gap-3 text-left spring-tap"
-                    >
-                      <div className="h-12 w-12 rounded-full overflow-hidden glass grid place-items-center shrink-0">
-                        {c.profile?.avatar_url ? (
-                          <img src={c.profile.avatar_url} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <span className="text-[15px] font-semibold text-foreground/70">{initial}</span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <MessageCircle className="h-3.5 w-3.5 text-foreground/30 shrink-0" />
-                          <span className="text-[14px] font-medium text-foreground/75 truncate">{name}</span>
-                        </div>
-                        <div className="text-[12.5px] text-foreground/45 truncate">
-                          {c.last_from_me ? "You: " : ""}{c.last_message}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-
-                {resolvedEnsembles.map((inv) => (
-                  <div key={`res-ens-${inv.id}`} className="glass rounded-3xl p-4 flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-2xl glass grid place-items-center shrink-0">
-                      <Users className="h-5 w-5 text-foreground/60" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-medium text-foreground/75 truncate">{inv.ensemble?.name ?? "Ensemble"}</div>
-                      <div className="text-[12.5px] text-foreground/45 capitalize">{inv.role.replace("_", " ")}</div>
-                    </div>
-                    <span className={`text-[11px] px-2.5 py-1 rounded-full ${inv.status === "accepted" ? "bg-foreground/10 text-foreground/70" : "bg-foreground/5 text-foreground/45"}`}>
-                      {inv.status === "accepted" ? "Accepted" : "Declined"}
-                    </span>
-                  </div>
-                ))}
-
-                {resolvedRooms.map((inv) => (
-                  <div key={`res-room-${inv.id}`} className="glass rounded-3xl p-4 flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-2xl glass grid place-items-center shrink-0 overflow-hidden">
-                      {inv.room?.avatar_url ? (
-                        <img src={inv.room.avatar_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <Users2 className="h-5 w-5 text-foreground/60" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-medium text-foreground/75 truncate">{inv.room?.name ?? "Room"}</div>
-                    </div>
-                    <span className={`text-[11px] px-2.5 py-1 rounded-full ${inv.status === "accepted" ? "bg-foreground/10 text-foreground/70" : "bg-foreground/5 text-foreground/45"}`}>
-                      {inv.status === "accepted" ? "Accepted" : "Declined"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+                </li>
+              );
+            })}
+          </ul>
+        </GlassPill>
       )}
-    </div>
+
+      {!loading && (ensembleInvites.length > 0 || roomInvites.length > 0) && (
+        <GlassPill>
+          <PillSectionHeader icon={Users} label="Invites" count={ensembleInvites.length + roomInvites.length} />
+          <ul className="mt-2 divide-y divide-border/40">
+            {ensembleInvites.map((inv) => (
+              <li key={inv.id} className="py-2.5 flex items-center gap-3">
+                <div className="h-9 w-9 shrink-0 rounded-lg bg-muted/60 grid place-items-center">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-medium truncate leading-tight">{inv.ensemble?.name ?? "Ensemble"}</p>
+                  <p className="text-[12px] text-muted-foreground truncate capitalize">{inv.role.replace("_", " ")}</p>
+                </div>
+                <button onClick={() => onDeclineEnsemble(inv)} className="h-7 w-7 rounded-full bg-foreground/10 hover:bg-foreground/15 grid place-items-center spring-tap" aria-label="Decline">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={() => onAcceptEnsemble(inv)} className="h-7 w-7 rounded-full bg-foreground text-background grid place-items-center spring-tap" aria-label="Accept">
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              </li>
+            ))}
+            {roomInvites.map((inv) => (
+              <li key={inv.id} className="py-2.5 flex items-center gap-3">
+                <div className="h-9 w-9 shrink-0 rounded-lg bg-muted/60 grid place-items-center">
+                  <Users2 className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-medium truncate leading-tight">{inv.room?.name ?? "Room"}</p>
+                </div>
+                <button onClick={() => onDeclineRoom(inv)} className="h-7 w-7 rounded-full bg-foreground/10 hover:bg-foreground/15 grid place-items-center spring-tap" aria-label="Decline">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={() => onAcceptRoom(inv)} className="h-7 w-7 rounded-full bg-foreground text-background grid place-items-center spring-tap" aria-label="Accept">
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </GlassPill>
+      )}
+
+      {!loading && unreadTotal === 0 && (
+        <GlassPill>
+          <p className="text-center text-[13.5px] text-muted-foreground py-4">
+            No new messages or invites.
+          </p>
+        </GlassPill>
+      )}
+    </PagePillFrame>
   );
 }
