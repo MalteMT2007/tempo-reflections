@@ -32,6 +32,7 @@ import { PracticeHistoryOverlay } from "@/components/practice/PracticeHistoryOve
 
 type View = "grid" | "list";
 const VIEW_KEY = "tempo:lib-view";
+const OPEN_SCORE_KEY = "tempo:lib-open-score";
 
 const Library = () => {
   const [scores, setScores] = useState<Score[]>([]);
