@@ -8,7 +8,7 @@ import AppLayout from "@/layouts/AppLayout";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Profile from "./pages/Profile.tsx";
-import Collegues from "./pages/Collegues.tsx";
+import Colleagues from "./pages/Colleagues.tsx";
 import Ensembles from "./pages/Ensembles.tsx";
 import EnsembleDetail from "./pages/EnsembleDetail.tsx";
 import InviteAccept from "./pages/InviteAccept.tsx";
