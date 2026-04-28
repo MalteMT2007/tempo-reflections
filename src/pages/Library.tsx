@@ -188,40 +188,114 @@ const ViewToggle = ({ view, onChange }: { view: View; onChange: (v: View) => voi
   </div>
 );
 
+// ---------- Score actions menu ----------
+const ScoreActionsMenu = ({
+  score,
+  onChanged,
+  className = "",
+}: {
+  score: Score;
+  onChanged: () => void;
+  className?: string;
+}) => {
+  const toggleFav = async (e: Event) => {
+    e.preventDefault();
+    try {
+      await setScoreFavorite(score.id, !score.favorite);
+      onChanged();
+    } catch {}
+  };
+  const remove = async (e: Event) => {
+    e.preventDefault();
+    if (!confirm(`Delete "${score.title}"?`)) return;
+    try {
+      await deleteScore(score);
+      onChanged();
+    } catch {}
+  };
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          aria-label="More actions"
+          className={`h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-muted-foreground hover:text-foreground spring-tap ${className}`}
+        >
+          <MoreHorizontal className="h-4 w-4" strokeWidth={2} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuItem onSelect={toggleFav}>
+          <Star className={`h-4 w-4 mr-2 ${score.favorite ? "fill-current" : ""}`} />
+          {score.favorite ? "Remove favorite" : "Favorite"}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={remove} className="text-destructive focus:text-destructive">
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
 // ---------- Compact grid card ----------
-const ScoreCardGrid = ({ score, onOpen }: { score: Score; onOpen: () => void }) => {
+const ScoreCardGrid = ({
+  score,
+  onOpen,
+  onChanged,
+}: {
+  score: Score;
+  onOpen: () => void;
+  onChanged: () => void;
+}) => {
   const cover = (score as any).cover_url as string | undefined;
   return (
-    <button onClick={onOpen} className="group text-left spring-tap focus:outline-none">
-      <div className="aspect-[3/4] rounded-xl overflow-hidden relative bg-muted border border-border">
-        {cover ? (
-          <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 grid place-items-center">
-            <FileMusic className="h-7 w-7 text-muted-foreground/70" strokeWidth={1.5} />
-          </div>
-        )}
+    <div className="group relative">
+      <button onClick={onOpen} className="w-full text-left spring-tap focus:outline-none">
+        <div className="aspect-[3/4] rounded-xl overflow-hidden relative bg-muted border border-border">
+          {cover ? (
+            <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 grid place-items-center">
+              <FileMusic className="h-7 w-7 text-muted-foreground/70" strokeWidth={1.5} />
+            </div>
+          )}
+          {score.favorite && (
+            <Star className="absolute top-2 left-2 h-3.5 w-3.5 fill-foreground text-foreground drop-shadow" />
+          )}
+        </div>
+        <div className="px-0.5 pt-3 pr-8">
+          <p className="text-[14px] font-medium text-foreground truncate leading-tight">
+            {score.title}
+          </p>
+          {score.composer && (
+            <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">{score.composer}</p>
+          )}
+        </div>
+      </button>
+      <div className="absolute right-0 bottom-0">
+        <ScoreActionsMenu score={score} onChanged={onChanged} />
       </div>
-      <div className="px-0.5 pt-3">
-        <p className="text-[14px] font-medium text-foreground truncate leading-tight">
-          {score.title}
-        </p>
-        {score.composer && (
-          <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">{score.composer}</p>
-        )}
-      </div>
-    </button>
+    </div>
   );
 };
 
 // ---------- List row ----------
-const ScoreRow = ({ score, onOpen }: { score: Score; onOpen: () => void }) => {
+const ScoreRow = ({
+  score,
+  onOpen,
+  onChanged,
+}: {
+  score: Score;
+  onOpen: () => void;
+  onChanged: () => void;
+}) => {
   const cover = (score as any).cover_url as string | undefined;
   return (
-    <li>
+    <li className="flex items-center gap-2 pr-2 hover:bg-muted/60 transition-colors">
       <button
         onClick={onOpen}
-        className="w-full text-left flex items-center gap-4 px-4 py-3 hover:bg-muted/60 transition-colors spring-tap"
+        className="flex-1 min-w-0 text-left flex items-center gap-4 px-4 py-3 spring-tap"
       >
         <div className="h-12 w-9 rounded-md overflow-hidden bg-muted border border-border shrink-0 grid place-items-center">
           {cover ? (
@@ -231,9 +305,12 @@ const ScoreRow = ({ score, onOpen }: { score: Score; onOpen: () => void }) => {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-medium text-foreground truncate leading-tight">
-            {score.title}
-          </p>
+          <div className="flex items-center gap-1.5">
+            {score.favorite && <Star className="h-3 w-3 fill-foreground text-foreground shrink-0" />}
+            <p className="text-[15px] font-medium text-foreground truncate leading-tight">
+              {score.title}
+            </p>
+          </div>
           {score.composer && (
             <p className="text-[13px] text-muted-foreground truncate mt-0.5">{score.composer}</p>
           )}
@@ -244,6 +321,7 @@ const ScoreRow = ({ score, onOpen }: { score: Score; onOpen: () => void }) => {
           </span>
         )}
       </button>
+      <ScoreActionsMenu score={score} onChanged={onChanged} />
     </li>
   );
 };
