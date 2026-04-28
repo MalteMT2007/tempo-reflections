@@ -151,6 +151,57 @@ export type Database = {
           },
         ]
       }
+      ensemble_roster: {
+        Row: {
+          claimed_by: string | null
+          created_at: string
+          created_by: string
+          ensemble_id: string
+          id: string
+          instrument: string | null
+          name: string
+          section_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          claimed_by?: string | null
+          created_at?: string
+          created_by: string
+          ensemble_id: string
+          id?: string
+          instrument?: string | null
+          name: string
+          section_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          claimed_by?: string | null
+          created_at?: string
+          created_by?: string
+          ensemble_id?: string
+          id?: string
+          instrument?: string | null
+          name?: string
+          section_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ensemble_roster_ensemble_id_fkey"
+            columns: ["ensemble_id"]
+            isOneToOne: false
+            referencedRelation: "ensembles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ensemble_roster_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "ensemble_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ensemble_sections: {
         Row: {
           created_at: string
@@ -392,6 +443,51 @@ export type Database = {
           id?: string
           started_at?: string
           title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_experiences: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_year: number | null
+          id: string
+          kind: string
+          location: string | null
+          organization: string | null
+          sort_order: number
+          start_year: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_year?: number | null
+          id?: string
+          kind?: string
+          location?: string | null
+          organization?: string | null
+          sort_order?: number
+          start_year?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_year?: number | null
+          id?: string
+          kind?: string
+          location?: string | null
+          organization?: string | null
+          sort_order?: number
+          start_year?: number | null
+          title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
