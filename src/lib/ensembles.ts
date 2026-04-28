@@ -303,3 +303,57 @@ export async function unassignScore(id: string) {
   const { error } = await supabase.from("project_score_assignments").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ===== My upcoming events across all ensembles =====
+export type MyUpcomingEvent = EventRow & {
+  ensemble_id: string;
+  ensemble_name: string;
+  project_title: string;
+};
+
+export async function listMyUpcomingEvents(limit = 20): Promise<MyUpcomingEvent[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data: memberships, error: mErr } = await supabase
+    .from("ensemble_members")
+    .select("ensemble_id")
+    .eq("user_id", user.id);
+  if (mErr) throw mErr;
+  const ensembleIds = (memberships ?? []).map((m: any) => m.ensemble_id);
+  if (ensembleIds.length === 0) return [];
+
+  const { data: projects, error: pErr } = await supabase
+    .from("ensemble_projects")
+    .select("id, title, ensemble_id, ensembles:ensemble_id(name)")
+    .in("ensemble_id", ensembleIds);
+  if (pErr) throw pErr;
+  const projectIds = (projects ?? []).map((p: any) => p.id);
+  if (projectIds.length === 0) return [];
+  const projectMap = new Map<string, { title: string; ensemble_id: string; ensemble_name: string }>();
+  for (const p of projects ?? []) {
+    projectMap.set((p as any).id, {
+      title: (p as any).title,
+      ensemble_id: (p as any).ensemble_id,
+      ensemble_name: (p as any).ensembles?.name ?? "",
+    });
+  }
+
+  const nowIso = new Date().toISOString();
+  const { data: events, error: eErr } = await supabase
+    .from("project_events")
+    .select("*")
+    .in("project_id", projectIds)
+    .gte("starts_at", nowIso)
+    .order("starts_at", { ascending: true })
+    .limit(limit);
+  if (eErr) throw eErr;
+  return (events ?? []).map((e: any) => {
+    const meta = projectMap.get(e.project_id);
+    return {
+      ...e,
+      ensemble_id: meta?.ensemble_id ?? "",
+      ensemble_name: meta?.ensemble_name ?? "",
+      project_title: meta?.title ?? "",
+    } as MyUpcomingEvent;
+  });
+}
