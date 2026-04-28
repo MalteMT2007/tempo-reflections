@@ -214,10 +214,13 @@ export async function friendsFeed(friendIds: string[]) {
 }
 
 // Ensembles
+export type EnsembleType = "orchestra" | "band" | "choir";
+
 export type DbEnsemble = {
   id: string;
   name: string;
   description: string | null;
+  type: EnsembleType | null;
   created_by: string;
   created_at: string;
 };
@@ -231,12 +234,12 @@ export async function listMyEnsembles(userId: string) {
   return (data ?? []).map((r: any) => r.ensembles as DbEnsemble);
 }
 
-export async function createEnsemble(name: string, description?: string) {
+export async function createEnsemble(name: string, type: EnsembleType, description?: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not signed in");
   const { data, error } = await supabase
     .from("ensembles")
-    .insert({ name, description: description || null, created_by: user.id })
+    .insert({ name, type, description: description || null, created_by: user.id })
     .select()
     .single();
   if (error) throw error;
