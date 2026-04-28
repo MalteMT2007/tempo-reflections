@@ -17,6 +17,7 @@ import Discover from "./pages/Discover.tsx";
 import Spaces from "./pages/Spaces.tsx";
 import SpacesRooms from "./pages/SpacesRooms.tsx";
 import Inbox from "./pages/Inbox.tsx";
+import Messages from "./pages/Messages.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/colleagues" element={<Colleagues />} />
+              <Route path="/messages/:id" element={<Messages />} />
               <Route path="/collegues" element={<Navigate to="/colleagues" replace />} />
               <Route path="/discover" element={<Discover />} />
             </Route>
