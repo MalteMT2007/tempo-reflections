@@ -53,7 +53,15 @@ const Library = () => {
     setLoading(true);
     setError(null);
     try {
-      setScores(await listMyScores());
+      const list = await listMyScores();
+      setScores(list);
+      // Restore last opened score (only on first load when no score is currently open)
+      const savedId = typeof localStorage !== "undefined" ? localStorage.getItem(OPEN_SCORE_KEY) : null;
+      if (savedId && !openScore) {
+        const match = list.find((s) => s.id === savedId);
+        if (match) setOpenScore(match);
+        else localStorage.removeItem(OPEN_SCORE_KEY);
+      }
     } catch (e: any) {
       setError(e?.message || "Couldn't load your library.");
     } finally {
@@ -65,6 +73,12 @@ const Library = () => {
     refresh();
     document.title = "Library — Tempo";
   }, []);
+
+  // Persist the currently open score so it reopens on next visit
+  useEffect(() => {
+    if (openScore) localStorage.setItem(OPEN_SCORE_KEY, openScore.id);
+    else localStorage.removeItem(OPEN_SCORE_KEY);
+  }, [openScore]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
