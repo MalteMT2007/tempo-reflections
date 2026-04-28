@@ -6,8 +6,11 @@ export type EventType = "rehearsal" | "concert";
 export type InviteStatus = "pending" | "accepted" | "revoked";
 export type AssigneeType = "section" | "member";
 
+export type EnsembleType = "orchestra" | "band" | "choir";
+
 export type Ensemble = {
   id: string; name: string; description: string | null;
+  type: EnsembleType | null;
   created_by: string; created_at: string; updated_at: string;
 };
 
