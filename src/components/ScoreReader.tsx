@@ -77,6 +77,21 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
   const [chromeVisible, setChromeVisible] = useState(true);
   const [annotateOpen, setAnnotateOpen] = useState(false);
 
+  // Track whether a page overlay (Library, Ensembles, etc.) is covering the
+  // reader. While covered, the reader's own top/bottom toolbars must be hidden
+  // so they only ever appear when the user is actually reading.
+  const [overlayActive, setOverlayActive] = useState(
+    typeof document !== "undefined" && document.body.hasAttribute("data-page-overlay")
+  );
+  useEffect(() => {
+    const sync = () =>
+      setOverlayActive(document.body.hasAttribute("data-page-overlay"));
+    sync();
+    const obs = new MutationObserver(sync);
+    obs.observe(document.body, { attributes: true, attributeFilter: ["data-page-overlay"] });
+    return () => obs.disconnect();
+  }, []);
+
   useEffect(() => {
     document.body.setAttribute("data-reader-open", "true");
     window.dispatchEvent(new Event("reader-open-change"));
@@ -85,6 +100,8 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       window.dispatchEvent(new Event("reader-open-change"));
     };
   }, []);
+
+  const showChrome = chromeVisible && !overlayActive;
 
   // Load PDF
   useEffect(() => {
