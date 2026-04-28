@@ -31,8 +31,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScoreReader } from "@/components/ScoreReader";
 import { PageHeader } from "@/components/PageHeader";
+import { GlassPill } from "@/components/PagePill";
+import { setBackgroundScore } from "@/components/LiveScoreReaderHost";
+import { useNavigate } from "react-router-dom";
 import { markScoreOpened, getOpenedAt } from "@/lib/recentScores";
 
 type View = "grid" | "list";
@@ -48,6 +50,7 @@ const SORT_LABEL: Record<Sort, string> = {
 };
 
 const Library = () => {
+  const navigate = useNavigate();
   const [scores, setScores] = useState<Score[]>([]);
   const [view, setView] = useState<View>(
     (typeof localStorage !== "undefined" && (localStorage.getItem(VIEW_KEY) as View)) || "list"
@@ -56,11 +59,16 @@ const Library = () => {
     (typeof localStorage !== "undefined" && (localStorage.getItem(SORT_KEY) as Sort)) || "recent"
   );
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [openScore, setOpenScore] = useState<Score | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const openInReader = (s: Score) => {
+    markScoreOpened(s.id);
+    setBackgroundScore(s);
+    navigate("/reader");
+  };
 
   useEffect(() => { localStorage.setItem(VIEW_KEY, view); }, [view]);
   useEffect(() => { localStorage.setItem(SORT_KEY, sort); }, [sort]);
