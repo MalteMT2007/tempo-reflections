@@ -15,6 +15,8 @@ import {
   ArrowUpAZ,
   Clock,
   ChevronDown,
+  Share2,
+  Users,
 } from "lucide-react";
 import {
   Score,
@@ -36,6 +38,8 @@ import { GlassPill } from "@/components/PagePill";
 import { setBackgroundScore } from "@/components/LiveScoreReaderHost";
 import { useNavigate } from "react-router-dom";
 import { markScoreOpened, getOpenedAt } from "@/lib/recentScores";
+import { ShareScoreDialog } from "@/components/ShareScoreDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 type View = "grid" | "list";
 type Sort = "az" | "za" | "recent";
