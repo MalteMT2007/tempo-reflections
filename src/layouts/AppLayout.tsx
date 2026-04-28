@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getProfile, DbProfile } from "@/lib/api";
 import { BottomDock } from "@/components/BottomDock";
+import { ReaderHamburger } from "@/components/ReaderHamburger";
 
 export default function AppLayout() {
   const { user } = useAuth();
