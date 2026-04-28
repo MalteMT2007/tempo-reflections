@@ -278,8 +278,34 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     setUndoStack((s) => [...s, created.id]);
   };
 
-  const goPrev = () => setPageIndex((p) => Math.max(0, p - 1));
-  const goNext = () => setPageIndex((p) => Math.min(pageCount - 1, p + 1));
+  const [flipDir, setFlipDir] = useState<"next" | "prev" | null>(null);
+  const flipTimerRef = useRef<number | null>(null);
+  const triggerFlip = (dir: "next" | "prev") => {
+    setFlipDir(dir);
+    if (flipTimerRef.current) window.clearTimeout(flipTimerRef.current);
+    flipTimerRef.current = window.setTimeout(() => setFlipDir(null), 220);
+  };
+  const goPrev = () => {
+    setPageIndex((p) => {
+      if (p <= 0) return p;
+      triggerFlip("prev");
+      return p - 1;
+    });
+  };
+  const goNext = () => {
+    setPageIndex((p) => {
+      if (p >= pageCount - 1) return p;
+      triggerFlip("next");
+      return p + 1;
+    });
+  };
+
+  // Tap-zone handler: only fires for finger taps (pen/mouse handled by drawing layer).
+  const handleZoneTap = (dir: "next" | "prev") => (e: React.PointerEvent) => {
+    if (e.pointerType === "pen") return; // never steal pencil input
+    e.preventDefault();
+    if (dir === "next") goNext(); else goPrev();
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
