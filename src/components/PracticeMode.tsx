@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Square, BookOpen, Users } from "lucide-react";
+import { Square, BookOpen, Users, FileMusic } from "lucide-react";
 import { Metronome } from "./Metronome";
 import { Notebook } from "./Notebook";
+import { ScoreReader } from "./ScoreReader";
+import { listMyScores, type Score } from "@/lib/scores";
 import { formatDuration, loadNotebook } from "@/lib/storage";
 
 type Props = {
@@ -17,6 +19,9 @@ type Props = {
 export const PracticeMode = ({ title, byline, focus, tags, goal, startedAt, onEnd }: Props) => {
   const [elapsed, setElapsed] = useState(0);
   const [notebookOpen, setNotebookOpen] = useState(false);
+  const [scoresOpen, setScoresOpen] = useState(false);
+  const [openScore, setOpenScore] = useState<Score | null>(null);
+  const [scores, setScores] = useState<Score[]>([]);
   const [noteCount, setNoteCount] = useState(0);
   const tickRef = useRef<number | null>(null);
 
@@ -96,16 +101,17 @@ export const PracticeMode = ({ title, byline, focus, tags, goal, startedAt, onEn
           </button>
 
           <button
-            disabled
-            title="Coming soon"
-            className="rounded-lg border border-dashed border-border bg-card/30 p-4 text-left opacity-60 cursor-not-allowed"
+            onClick={async () => {
+              setScoresOpen(true);
+              try { setScores(await listMyScores()); } catch {}
+            }}
+            className="rounded-lg border border-border bg-card/60 backdrop-blur-sm p-4 shadow-soft text-left hover:border-ink/40 transition"
           >
             <div className="flex items-center justify-between mb-1">
-              <Users className="h-4 w-4 text-ink-soft" />
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Soon</span>
+              <FileMusic className="h-4 w-4 text-ink-soft" />
             </div>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Community</p>
-            <p className="font-serif text-sm text-ink mt-1">Notes from others</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Sheet music</p>
+            <p className="font-serif text-sm text-ink mt-1">Open & annotate a score</p>
           </button>
         </div>
 
@@ -133,6 +139,45 @@ export const PracticeMode = ({ title, byline, focus, tags, goal, startedAt, onEn
         onClose={() => setNotebookOpen(false)}
         onChange={(entries) => setNoteCount(entries.length)}
       />
+
+      {scoresOpen && !openScore && (
+        <div className="fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-paper border border-border rounded-t-lg sm:rounded-lg shadow-elev w-full max-w-md p-6 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif text-xl text-ink">Open a score</h3>
+              <button
+                onClick={() => setScoresOpen(false)}
+                className="text-xs text-ink-soft hover:text-ink uppercase tracking-wider"
+              >
+                Close
+              </button>
+            </div>
+            {scores.length === 0 ? (
+              <p className="font-serif italic text-sm text-ink-soft text-center py-6">
+                Your library is empty. Upload PDFs from the menu → Sheet music.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {scores.map((s) => (
+                  <li key={s.id}>
+                    <button
+                      onClick={() => { setOpenScore(s); setScoresOpen(false); }}
+                      className="w-full text-left py-3 hover:bg-card/40 px-2 rounded transition"
+                    >
+                      <p className="font-serif text-sm text-ink truncate">{s.title}</p>
+                      {s.composer && <p className="font-serif italic text-[11px] text-ink-soft truncate">{s.composer}</p>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {openScore && (
+        <ScoreReader score={openScore} onClose={() => setOpenScore(null)} />
+      )}
     </div>
   );
 };
