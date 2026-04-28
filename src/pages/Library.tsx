@@ -147,6 +147,8 @@ const Library = () => {
       {openScore && (
         <ScoreReader score={openScore} onClose={() => setOpenScore(null)} />
       )}
+
+      {historyOpen && <PracticeHistoryOverlay onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 };
