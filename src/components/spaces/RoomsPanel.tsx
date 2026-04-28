@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Plus, Search, Hash, Lock, Users, Loader2, ArrowLeft, MoreHorizontal, Send,
+  Plus, Search, Users2, Lock, Users, Loader2, ArrowLeft, MoreHorizontal, Send, Camera, Pencil,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Room, RoomMessage, ProfileLite,
   listMyRooms, searchPublicRooms, createRoom, joinPublicRoom, leaveRoom,
   listMessages, sendMessage, inviteUserToRoom, searchProfiles,
+  updateRoom, uploadRoomAvatar,
 } from "@/lib/social";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
