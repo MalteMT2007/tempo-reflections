@@ -327,7 +327,8 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       const py = rel.y * renderSize.h;
       const target = [...annotations].reverse().find((a) => {
         if (a.page_index !== pageIndex) return false;
-        if (a.user_id !== user?.id) return false;
+        // Own annotations always; score owner can erase anyone's
+        if (a.user_id !== user?.id && !isScoreOwner) return false;
         if (a.kind === "stroke") {
           const d = a.data as StrokeData;
           return d.points.some((p) => {
