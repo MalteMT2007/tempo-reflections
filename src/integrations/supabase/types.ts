@@ -868,6 +868,7 @@ export type Database = {
         Args: { _score_id: string; _user: string }
         Returns: boolean
       }
+      current_user_email: { Args: never; Returns: string }
       ensemble_member_section: {
         Args: { _ensemble: string; _user: string }
         Returns: string
