@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, Calendar, Mic2, Clock3, Flame, ChevronRight } from "lucide-react";
+import { Inbox, Calendar, Mic2, Clock3, Flame, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyUpcomingEvents, MyUpcomingEvent } from "@/lib/ensembles";
@@ -80,7 +80,7 @@ const Home = () => {
             left: "calc(env(safe-area-inset-left, 0px) + 14px)",
           }}
         >
-          <Bell className="h-[16px] w-[16px] text-foreground" strokeWidth={1.8} />
+          <Inbox className="h-[16px] w-[16px] text-foreground" strokeWidth={1.8} />
           {pending > 0 && (
             <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-[#FF3B30] ring-2 ring-background/60" />
           )}
