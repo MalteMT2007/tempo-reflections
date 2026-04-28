@@ -130,7 +130,7 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       const ctx = canvas.getContext("2d")!;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       try { renderTaskRef.current?.cancel?.(); } catch {}
-      renderTaskRef.current = page.render({ canvasContext: ctx, viewport, canvas });
+      renderTaskRef.current = page.render({ canvasContext: ctx, viewport });
       try { await renderTaskRef.current.promise; } catch { /* render canceled */ }
     })();
     return () => { cancelled = true; };
