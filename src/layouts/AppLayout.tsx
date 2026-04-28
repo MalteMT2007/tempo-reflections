@@ -4,12 +4,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getProfile, DbProfile } from "@/lib/api";
 import { BottomDock } from "@/components/BottomDock";
 import { ReaderHamburger } from "@/components/ReaderHamburger";
+import { BlurredScoreBackdrop } from "@/components/BlurredScoreBackdrop";
+import { useLocation } from "react-router-dom";
 
 export default function AppLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState<DbProfile | null>(null);
   const [readerOpen, setReaderOpen] = useState(false);
+
+  // Home renders its own full-screen ScoreReader as background — no static backdrop there.
+  const showBackdrop = location.pathname !== "/" && !readerOpen;
 
   useEffect(() => {
     const sync = () => setReaderOpen(document.body.hasAttribute("data-reader-open"));
@@ -26,7 +32,8 @@ export default function AppLayout() {
   const initial = (profile?.display_name || profile?.username || user?.email || "?").charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen flex flex-col w-full bg-background">
+    <div className="min-h-screen flex flex-col w-full bg-background relative">
+      {showBackdrop && <BlurredScoreBackdrop />}
       {/* Floating profile top-right */}
       {!readerOpen && (
         <button
