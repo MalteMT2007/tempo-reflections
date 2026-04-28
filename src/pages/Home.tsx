@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Inbox, Calendar, Mic2, Clock3, Flame, ChevronRight, Play, FileMusic } from "lucide-react";
+import { Inbox, Calendar, Mic2, Clock3, Flame, ChevronRight, Play, FileMusic, Library as LibraryIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyUpcomingEvents, MyUpcomingEvent } from "@/lib/ensembles";
