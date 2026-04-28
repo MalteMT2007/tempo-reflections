@@ -2,16 +2,8 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { BookOpen, Users, Users2, Search, Music2 } from "lucide-react";
 import { GlobalSearchOverlay } from "./GlobalSearchOverlay";
+import { useReaderChrome } from "@/hooks/useReaderChrome";
 
-const items = [
-  { to: "/reader", label: "Reader", Icon: Music2 },
-  { to: "/library", label: "Library", Icon: BookOpen },
-  { to: "/", label: "Home", Icon: Users2, hideLabel: false }, // landing pills
-  { to: "/ensembles", label: "Ensembles", Icon: Users, match: ["/ensembles"] },
-  { to: "/spaces/rooms", label: "Rooms", Icon: Users2, match: ["/spaces"] },
-];
-
-// We re-define items cleanly below.
 const dockItems = [
   { to: "/reader", label: "Reader", Icon: Music2 },
   { to: "/library", label: "Library", Icon: BookOpen },
@@ -19,19 +11,29 @@ const dockItems = [
   { to: "/spaces/rooms", label: "Rooms", Icon: Users2, match: ["/spaces"] },
 ];
 
-export function BottomDock({ inReader }: { inReader?: boolean }) {
+export function BottomDock() {
   const { pathname } = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
+  const inReader = pathname === "/reader";
+  const readerChromeVisible = useReaderChrome();
+
+  // In reader: only show when user has tapped (chrome visible).
+  // On overlay routes: always show.
+  const visible = inReader ? readerChromeVisible : true;
 
   return (
     <>
       <nav
         aria-label="Primary"
-        className="fixed left-1/2 -translate-x-1/2 z-[50] pointer-events-none"
+        className={`fixed left-1/2 -translate-x-1/2 z-[50] pointer-events-none transition-all duration-300 ${
+          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3 pointer-events-none"
+        }`}
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
       >
         <ul
-          className="pointer-events-auto flex items-center gap-1 px-2 py-2 rounded-full border border-border/60 bg-background/75 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.25)]"
+          className={`flex items-center gap-1 px-2 py-2 rounded-full border border-border/60 bg-background/75 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.25)] ${
+            visible ? "pointer-events-auto" : ""
+          }`}
         >
           {dockItems.map(({ to, label, Icon, match }) => {
             const active =
