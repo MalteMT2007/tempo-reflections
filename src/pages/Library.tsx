@@ -9,14 +9,22 @@ import {
   Upload,
   LayoutGrid,
   List as ListIcon,
+  MoreHorizontal,
+  Star,
 } from "lucide-react";
 import {
   Score,
   deleteScore,
   listMyScores,
-  listSessionsForScore,
+  setScoreFavorite,
   uploadScore,
 } from "@/lib/scores";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScoreReader } from "@/components/ScoreReader";
 import { PageHeader } from "@/components/PageHeader";
 import { ProgressHeaderCard } from "@/components/practice/ProgressHeaderCard";
@@ -33,7 +41,7 @@ const Library = () => {
   );
   const [uploadOpen, setUploadOpen] = useState(false);
   const [openScore, setOpenScore] = useState<Score | null>(null);
-  const [detail, setDetail] = useState<Score | null>(null);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
