@@ -43,7 +43,7 @@ const App = () => (
             {/* App shell with sidebar */}
             <Route element={<Protected><AppLayout /></Protected>}>
               <Route path="/" element={<Navigate to="/library" replace />} />
-              <Route path="/practise" element={<Index />} />
+              <Route path="/practise" element={<Navigate to="/library" replace />} />
               <Route path="/ensembles" element={<Ensembles />} />
               <Route path="/ensembles/:id" element={<EnsembleDetail />} />
               <Route path="/library" element={<Library />} />

@@ -15,9 +15,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 
 const items = [
-  { title: "Practise", url: "/practise", icon: Music2 },
-  { title: "Ensemble", url: "/ensembles", icon: Users },
   { title: "Library", url: "/library", icon: BookOpen },
+  { title: "Ensemble", url: "/ensembles", icon: Users },
   { title: "Spaces", url: "/spaces", icon: Hash },
   { title: "Colleagues", url: "/colleagues", icon: UserPlus },
   { title: "Profile", url: "/profile", icon: UserIcon },
