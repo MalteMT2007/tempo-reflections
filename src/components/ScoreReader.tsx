@@ -344,15 +344,26 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
         <div className="relative shadow-elev bg-paper" style={{ width: renderSize.w || undefined, height: renderSize.h || undefined }}>
           <canvas ref={canvasRef} className="block" />
           <canvas ref={overlayRef} className="absolute inset-0 pointer-events-none" />
-          <canvas
-            ref={drawRef}
-            className="absolute inset-0"
-            style={{ touchAction: tool === "pan" ? "auto" : "none", cursor: tool === "text" ? "text" : tool === "erase" ? "crosshair" : "crosshair" }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-          />
+          {tool === "draw" ? (
+            <DrawingCanvas
+              width={renderSize.w}
+              height={renderSize.h}
+              color={color}
+              widthScale={width / 4}
+              onStrokeComplete={handleStrokeComplete}
+              className="absolute inset-0"
+            />
+          ) : tool === "pan" ? null : (
+            <div
+              ref={drawRef as unknown as React.RefObject<HTMLDivElement>}
+              className="absolute inset-0"
+              style={{
+                touchAction: "none",
+                cursor: tool === "text" ? "text" : "crosshair",
+              }}
+              onPointerDown={onAuxPointerDown}
+            />
+          )}
         </div>
       </div>
 
