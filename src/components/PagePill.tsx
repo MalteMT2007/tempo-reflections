@@ -1,20 +1,13 @@
 import { ReactNode } from "react";
+import { PageOverlay } from "./PageOverlay";
 
 /**
  * Centered glass pill container, matching the Home landing-pill aesthetic.
- * Use as the wrapper for content on main pages over BlurredScoreBackdrop.
+ * Now an alias of PageOverlay so all pages get the tap-to-reader scrim
+ * behaviour automatically.
  */
 export function PagePillFrame({ children }: { children: ReactNode }) {
-  return (
-    <div className="min-h-[calc(100vh-3.5rem)] flex items-start justify-center">
-      <div
-        className="w-full max-w-md mx-auto px-5 pb-32 flex flex-col gap-3"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)" }}
-      >
-        {children}
-      </div>
-    </div>
-  );
+  return <PageOverlay>{children}</PageOverlay>;
 }
 
 export function GlassPill({
