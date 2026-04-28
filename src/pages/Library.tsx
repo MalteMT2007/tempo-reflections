@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import {
-  ArrowLeft,
-  Upload,
-  Grid3x3,
-  List as ListIcon,
+  Plus,
   Search,
   FileMusic,
   Trash2,
   X,
+  AlertCircle,
+  Upload,
 } from "lucide-react";
 import {
   Score,
@@ -19,22 +17,33 @@ import {
 } from "@/lib/scores";
 import { ScoreReader } from "@/components/ScoreReader";
 
-type View = "grid" | "list";
+// Deterministic tint per score (Apple-style soft pastels)
+const TINTS = [
+  "#FF9F0A", "#FF375F", "#BF5AF2", "#0A84FF", "#30D158",
+  "#64D2FF", "#FF6482", "#FFD60A", "#5E5CE6", "#FF453A",
+];
+const tintFor = (id: string) => {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return TINTS[h % TINTS.length];
+};
 
 const Library = () => {
   const [scores, setScores] = useState<Score[]>([]);
-  const [view, setView] = useState<View>("grid");
   const [query, setQuery] = useState("");
-  const [filterInstrument, setFilterInstrument] = useState<string>("");
   const [uploadOpen, setUploadOpen] = useState(false);
   const [openScore, setOpenScore] = useState<Score | null>(null);
   const [detail, setDetail] = useState<Score | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = async () => {
     setLoading(true);
+    setError(null);
     try {
       setScores(await listMyScores());
+    } catch (e: any) {
+      setError(e?.message || "Couldn't load your library.");
     } finally {
       setLoading(false);
     }
@@ -42,154 +51,62 @@ const Library = () => {
 
   useEffect(() => {
     refresh();
-    document.title = "Library — Practice";
+    document.title = "Library — Tempo";
   }, []);
-
-  const instruments = useMemo(() => {
-    const s = new Set<string>();
-    scores.forEach((x) => x.instrument && s.add(x.instrument));
-    return Array.from(s);
-  }, [scores]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return scores.filter((s) => {
-      if (filterInstrument && s.instrument !== filterInstrument) return false;
-      if (!q) return true;
-      return (
+    if (!q) return scores;
+    return scores.filter(
+      (s) =>
         s.title.toLowerCase().includes(q) ||
         (s.composer || "").toLowerCase().includes(q) ||
         s.tags.some((t) => t.toLowerCase().includes(q))
-      );
-    });
-  }, [scores, query, filterInstrument]);
+    );
+  }, [scores, query]);
 
   return (
-    <div className="min-h-screen pb-24">
-      <div className="max-w-3xl mx-auto px-6 pt-10">
-        <div className="flex items-center justify-between mb-6">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-ink-soft hover:text-ink transition"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Home
-          </Link>
+    <div className="min-h-[calc(100vh-3.5rem)] pb-24">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8">
+        {/* Title row */}
+        <div className="flex items-end justify-between mb-5">
+          <h1 className="text-[34px] font-semibold tracking-tight leading-none">Library</h1>
           <button
             onClick={() => setUploadOpen(true)}
-            className="rounded-full bg-ink text-paper px-4 py-2 text-sm flex items-center gap-2 shadow-soft hover:opacity-90"
+            aria-label="Add sheet music"
+            className="h-10 w-10 grid place-items-center rounded-full bg-foreground text-background spring-tap"
           >
-            <Upload className="h-3.5 w-3.5" /> Upload PDF
+            <Plus className="h-5 w-5" strokeWidth={2.2} />
           </button>
         </div>
 
-        <header className="mb-8">
-          <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">Sheet music</p>
-          <h1 className="font-serif text-4xl font-light text-ink leading-none">Library</h1>
-          <p className="font-serif italic text-ink-soft mt-2">
-            Your scores, annotations, and the sessions they shaped.
-          </p>
-        </header>
-
-        {/* Toolbar */}
-        <div className="flex items-center gap-2 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-soft" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search title, composer, tag…"
-              className="w-full pl-9 pr-3 py-2 rounded-full border border-border bg-card/40 text-sm focus:border-ink outline-none"
-            />
-          </div>
-          {instruments.length > 0 && (
-            <select
-              value={filterInstrument}
-              onChange={(e) => setFilterInstrument(e.target.value)}
-              className="rounded-full border border-border bg-card/40 text-sm px-3 py-2 focus:border-ink outline-none"
-            >
-              <option value="">All instruments</option>
-              {instruments.map((i) => (
-                <option key={i} value={i}>{i}</option>
-              ))}
-            </select>
-          )}
-          <div className="flex rounded-full border border-border overflow-hidden">
-            <button
-              onClick={() => setView("grid")}
-              className={`p-2 ${view === "grid" ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"}`}
-              aria-label="Grid view"
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setView("list")}
-              className={`p-2 ${view === "list" ? "bg-ink text-paper" : "text-ink-soft hover:text-ink"}`}
-              aria-label="List view"
-            >
-              <ListIcon className="h-4 w-4" />
-            </button>
-          </div>
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search"
+            className="w-full pl-10 pr-3 h-10 rounded-xl bg-muted text-[15px] outline-none border border-transparent focus:border-border placeholder:text-muted-foreground"
+          />
         </div>
 
         {/* Content */}
         {loading ? (
-          <p className="text-center text-ink-soft font-serif italic py-12">Loading…</p>
+          <LoadingGrid />
+        ) : error ? (
+          <ErrorState message={error} onRetry={refresh} />
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 border border-dashed border-border rounded-lg">
-            <FileMusic className="h-8 w-8 mx-auto mb-3 text-ink-soft" />
-            <p className="font-serif italic text-ink-soft">
-              {scores.length === 0
-                ? "Your library is empty. Upload your first PDF to begin."
-                : "No scores match your search."}
-            </p>
-          </div>
-        ) : view === "grid" ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {filtered.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setDetail(s)}
-                className="group text-left rounded-lg border border-border bg-card/40 overflow-hidden hover:border-ink/40 transition shadow-soft"
-              >
-                <div className="aspect-[3/4] bg-paper border-b border-border flex items-center justify-center">
-                  <FileMusic className="h-10 w-10 text-ink-soft/60 group-hover:text-ink transition" />
-                </div>
-                <div className="p-3">
-                  <p className="font-serif text-sm text-ink truncate leading-tight">{s.title}</p>
-                  {s.composer && (
-                    <p className="font-serif italic text-[11px] text-ink-soft truncate">{s.composer}</p>
-                  )}
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
-                    {new Date(s.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
+          <EmptyState
+            empty={scores.length === 0}
+            onAdd={() => setUploadOpen(true)}
+          />
         ) : (
-          <ul className="divide-y divide-border">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
             {filtered.map((s) => (
-              <li key={s.id}>
-                <button
-                  onClick={() => setDetail(s)}
-                  className="w-full text-left py-4 flex items-center gap-3 hover:bg-card/40 transition px-2 rounded"
-                >
-                  <FileMusic className="h-5 w-5 text-ink-soft" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-serif text-base text-ink truncate">{s.title}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {s.composer || "—"}{s.instrument ? ` · ${s.instrument}` : ""} · {new Date(s.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  {s.tags.length > 0 && (
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground hidden sm:inline">
-                      {s.tags.slice(0, 2).join(" · ")}
-                    </span>
-                  )}
-                </button>
-              </li>
+              <ScoreCard key={s.id} score={s} onOpen={() => setDetail(s)} />
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
@@ -217,6 +134,91 @@ const Library = () => {
 };
 
 export default Library;
+
+// ---------- Card ----------
+const ScoreCard = ({ score, onOpen }: { score: Score; onOpen: () => void }) => {
+  const tint = tintFor(score.id);
+  const cover = (score as any).cover_url as string | undefined;
+  return (
+    <button
+      onClick={onOpen}
+      className="group text-left spring-tap focus:outline-none"
+    >
+      <div
+        className="aspect-[3/4] rounded-2xl overflow-hidden relative shadow-soft"
+        style={{
+          background: cover ? undefined : `linear-gradient(160deg, ${tint} 0%, ${tint}CC 100%)`,
+        }}
+      >
+        {cover ? (
+          <img src={cover} alt="" loading="lazy" className="h-full w-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center">
+            <FileMusic className="h-10 w-10 text-white/85" strokeWidth={1.5} />
+          </div>
+        )}
+      </div>
+      <div className="px-1 pt-2.5">
+        <p className="text-[14px] font-medium text-foreground truncate leading-tight">{score.title}</p>
+        {score.composer && (
+          <p className="text-[12px] text-muted-foreground truncate mt-0.5">{score.composer}</p>
+        )}
+      </div>
+    </button>
+  );
+};
+
+// ---------- States ----------
+const LoadingGrid = () => (
+  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+    {Array.from({ length: 8 }).map((_, i) => (
+      <div key={i} className="space-y-2.5">
+        <div className="aspect-[3/4] rounded-2xl bg-muted animate-pulse" />
+        <div className="h-3.5 w-3/4 rounded bg-muted animate-pulse" />
+        <div className="h-3 w-1/2 rounded bg-muted animate-pulse" />
+      </div>
+    ))}
+  </div>
+);
+
+const EmptyState = ({ empty, onAdd }: { empty: boolean; onAdd: () => void }) => (
+  <div className="text-center py-20">
+    <div className="h-14 w-14 mx-auto rounded-2xl bg-muted grid place-items-center mb-4">
+      <FileMusic className="h-7 w-7 text-muted-foreground" strokeWidth={1.5} />
+    </div>
+    <p className="text-[17px] font-medium text-foreground">
+      {empty ? "No sheet music yet" : "No matches"}
+    </p>
+    <p className="text-[14px] text-muted-foreground mt-1">
+      {empty ? "Add your first PDF to get started." : "Try a different search."}
+    </p>
+    {empty && (
+      <button
+        onClick={onAdd}
+        className="mt-5 inline-flex items-center gap-2 h-10 px-5 rounded-full bg-foreground text-background text-[14px] font-medium spring-tap"
+      >
+        <Plus className="h-4 w-4" strokeWidth={2.2} /> Add PDF
+      </button>
+    )}
+  </div>
+);
+
+const ErrorState = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
+  <div className="text-center py-20">
+    <div className="h-14 w-14 mx-auto rounded-2xl bg-muted grid place-items-center mb-4">
+      <AlertCircle className="h-7 w-7 text-destructive" strokeWidth={1.5} />
+    </div>
+    <p className="text-[17px] font-medium text-foreground">Something went wrong</p>
+    <p className="text-[14px] text-muted-foreground mt-1 max-w-xs mx-auto">{message}</p>
+    <button
+      onClick={onRetry}
+      className="mt-5 inline-flex h-10 px-5 items-center rounded-full bg-foreground text-background text-[14px] font-medium spring-tap"
+    >
+      Try again
+    </button>
+  </div>
+);
+
 
 // ---------- Upload Dialog ----------
 const UploadDialog = ({ onClose, onUploaded }: { onClose: () => void; onUploaded: () => void }) => {

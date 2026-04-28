@@ -1,14 +1,22 @@
-import { Outlet, NavLink } from "react-router-dom";
-import { Bell } from "lucide-react";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Bell, Search, Menu as MenuIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { getProfile, DbProfile } from "@/lib/api";
+import { TopMenu } from "@/components/TopMenu";
 
 export default function AppLayout() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [pending, setPending] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profile, setProfile] = useState<DbProfile | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    getProfile(user.id).then(setProfile).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -31,29 +39,62 @@ export default function AppLayout() {
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [user]);
 
+  const initial = (profile?.display_name || profile?.username || user?.email || "?").charAt(0).toUpperCase();
+
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center justify-between px-4 sticky top-0 z-30 glass-strong border-b-0">
-            <SidebarTrigger className="text-foreground/70 hover:text-foreground spring-tap" />
-            <NavLink
-              to="/inbox"
-              aria-label="Inbox"
-              className="relative h-10 w-10 grid place-items-center rounded-full glass spring-tap"
-            >
-              <Bell className="h-[18px] w-[18px]" />
-              {pending > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-white shadow-[0_0_0_2px_hsl(250_30%_6%)]" />
-              )}
-            </NavLink>
-          </header>
-          <main className="flex-1 min-w-0 animate-fade-in">
-            <Outlet />
-          </main>
+    <div className="min-h-screen flex flex-col w-full bg-background">
+      <header className="h-14 flex items-center justify-between px-4 sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border">
+        <NavLink to="/library" className="text-[17px] font-semibold tracking-tight text-foreground spring-tap">
+          Tempo
+        </NavLink>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => navigate("/profile")}
+            aria-label="Profile"
+            className="h-9 w-9 grid place-items-center rounded-full overflow-hidden spring-tap bg-muted"
+          >
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-[13px] font-semibold text-foreground">{initial}</span>
+            )}
+          </button>
+
+          <NavLink
+            to="/inbox"
+            aria-label="Notifications"
+            className="relative h-9 w-9 grid place-items-center rounded-full hover:bg-muted spring-tap"
+          >
+            <Bell className="h-[19px] w-[19px] text-foreground" strokeWidth={1.8} />
+            {pending > 0 && (
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#FF3B30] ring-2 ring-background" />
+            )}
+          </NavLink>
+
+          <button
+            onClick={() => navigate("/discover")}
+            aria-label="Search"
+            className="h-9 w-9 grid place-items-center rounded-full hover:bg-muted spring-tap"
+          >
+            <Search className="h-[19px] w-[19px] text-foreground" strokeWidth={1.8} />
+          </button>
+
+          <button
+            onClick={() => setMenuOpen(true)}
+            aria-label="Menu"
+            className="h-9 w-9 grid place-items-center rounded-full hover:bg-muted spring-tap"
+          >
+            <MenuIcon className="h-[20px] w-[20px] text-foreground" strokeWidth={1.8} />
+          </button>
         </div>
-      </div>
-    </SidebarProvider>
+      </header>
+
+      <main className="flex-1 min-w-0 animate-fade-in">
+        <Outlet />
+      </main>
+
+      <TopMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+    </div>
   );
 }
