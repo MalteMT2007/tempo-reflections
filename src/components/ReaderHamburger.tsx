@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Menu, Users, UserPlus, Users2 } from "lucide-react";
+import { BookOpen, Menu, Users, UserPlus, Users2, Home as HomeIcon, Bell } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -7,10 +7,12 @@ import {
 } from "@/components/ui/popover";
 
 const items = [
+  { to: "/", label: "Home", Icon: HomeIcon },
   { to: "/library", label: "Library", Icon: BookOpen },
   { to: "/ensembles", label: "Ensembles", Icon: Users },
   { to: "/colleagues", label: "Colleagues", Icon: UserPlus },
   { to: "/spaces/rooms", label: "Rooms", Icon: Users2 },
+  { to: "/inbox", label: "Inbox", Icon: Bell },
 ];
 
 export function ReaderHamburger() {
