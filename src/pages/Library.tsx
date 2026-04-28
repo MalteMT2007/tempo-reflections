@@ -131,7 +131,10 @@ const Library = () => {
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] pb-24">
-      <div className="max-w-4xl mx-auto px-5 sm:px-6 pt-12 sm:pt-16">
+      <div
+        className="max-w-md mx-auto px-5 sm:px-6"
+        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)" }}
+      >
         <PageHeader
           title="Library"
           trailing={
