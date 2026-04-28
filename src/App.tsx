@@ -48,7 +48,8 @@ const App = () => (
               <Route path="/spaces" element={<Spaces />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/inbox" element={<Inbox />} />
-              <Route path="/collegues" element={<Collegues />} />
+              <Route path="/colleagues" element={<Colleagues />} />
+              <Route path="/collegues" element={<Navigate to="/colleagues" replace />} />
               <Route path="/discover" element={<Discover />} />
             </Route>
 
