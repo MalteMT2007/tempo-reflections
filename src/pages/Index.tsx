@@ -116,7 +116,7 @@ const Index = () => {
 
       {phase === "setup" && (
         <SessionSetup
-          genre={profile.genre}
+          genre={(profile.genre as any) || "classical"}
           recentPieces={recentPieces}
           prefill={resume ?? undefined}
           onCancel={() => { setResume(null); setPhase("dashboard"); }}
