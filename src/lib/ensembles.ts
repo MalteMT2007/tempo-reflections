@@ -142,10 +142,20 @@ export async function acceptInvite(token: string): Promise<string> {
   if (error) throw error;
   return data as string;
 }
-export async function listMyPendingInvites(): Promise<Invite[]> {
+export async function listMyPendingInvites(): Promise<(Invite & { ensemble?: { name: string } | null })[]> {
   const { data, error } = await supabase.from("ensemble_invites").select("*").eq("status", "pending");
   if (error) throw error;
-  return (data ?? []) as any;
+  const rows = (data ?? []) as any[];
+  if (!rows.length) return [];
+  const ids = Array.from(new Set(rows.map(r => r.ensemble_id)));
+  const { data: ens } = await supabase.from("ensembles").select("id, name").in("id", ids);
+  const map = new Map<string, any>();
+  for (const e of (ens ?? []) as any[]) map.set(e.id, e);
+  return rows.map(r => ({ ...r, ensemble: map.get(r.ensemble_id) ?? null }));
+}
+export async function declineEnsembleInvite(id: string) {
+  const { error } = await supabase.from("ensemble_invites").update({ status: "revoked" }).eq("id", id);
+  if (error) throw error;
 }
 
 // ===== Projects =====
