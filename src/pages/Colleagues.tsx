@@ -20,10 +20,22 @@ import {
   type ColleagueProfile,
   type ColleagueRequest,
 } from "@/lib/colleagues";
+import { PageHeader } from "@/components/PageHeader";
 
 function initials(name: string | null | undefined, fallback: string) {
   const s = (name || fallback || "?").trim();
   return s.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "?";
+}
+
+// Deterministic soft tint for avatar background fallback (Apple-like).
+const TINTS = [
+  "hsl(210 70% 92%)", "hsl(280 60% 92%)", "hsl(150 50% 90%)", "hsl(30 80% 90%)",
+  "hsl(0 65% 92%)", "hsl(190 70% 90%)", "hsl(50 85% 90%)", "hsl(330 60% 92%)",
+];
+function tintFor(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return TINTS[h % TINTS.length];
 }
 
 export default function Colleagues() {
@@ -70,12 +82,10 @@ export default function Colleagues() {
     catch (e: any) { toast.error(e.message); }
   };
   const onAccept = async (id: string) => {
-    try { await acceptRequest(id); load(); }
-    catch (e: any) { toast.error(e.message); }
+    try { await acceptRequest(id); load(); } catch (e: any) { toast.error(e.message); }
   };
   const onDecline = async (id: string) => {
-    try { await declineRequest(id); load(); }
-    catch (e: any) { toast.error(e.message); }
+    try { await declineRequest(id); load(); } catch (e: any) { toast.error(e.message); }
   };
   const onRemove = async (id: string) => {
     try { await removeColleague(id); toast.success("Removed"); load(); }
@@ -83,48 +93,51 @@ export default function Colleagues() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 md:px-10 py-10 md:py-14">
-      <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight mb-8">Colleagues</h1>
+    <div className="max-w-4xl mx-auto px-5 sm:px-6 pt-8 sm:pt-10 pb-20">
+      <PageHeader title="Colleagues" />
 
       {/* Search */}
-      <div className="relative mb-10">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-foreground/40" />
+      <div className="relative mt-7 mb-8">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-muted-foreground" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Find people"
-          className="glass-input w-full h-12 rounded-full pl-12 pr-4 text-[15px]"
+          className="w-full h-12 rounded-full bg-muted pl-12 pr-4 text-[15px] outline-none border border-transparent focus:border-border placeholder:text-muted-foreground"
         />
         {query.trim() && (
-          <div className="glass mt-3 rounded-3xl p-2 max-h-[420px] overflow-y-auto animate-fade-in">
-            {searching && <div className="px-4 py-3 text-sm text-foreground/50">Searching…</div>}
+          <div className="mt-3 rounded-2xl border border-border bg-background p-2 max-h-[420px] overflow-y-auto animate-fade-in shadow-soft">
+            {searching && <div className="px-4 py-3 text-[14px] text-muted-foreground">Searching…</div>}
             {!searching && results.length === 0 && (
-              <div className="px-4 py-3 text-sm text-foreground/50">No people found</div>
+              <div className="px-4 py-3 text-[14px] text-muted-foreground">No people found</div>
             )}
             {results.map((p) => {
               const already = colleagueIds.has(p.id);
               const requested = outgoingIds.has(p.id);
               return (
-                <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-white/[0.06]">
+                <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/60">
                   <Avatar className="h-11 w-11">
                     <AvatarImage src={p.avatar_url ?? undefined} />
-                    <AvatarFallback className="bg-white/10 text-foreground text-sm">
+                    <AvatarFallback
+                      className="text-foreground text-[13px] font-medium"
+                      style={{ backgroundColor: tintFor(p.id) }}
+                    >
                       {initials(p.display_name, p.username)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="text-[15px] font-medium truncate">{p.display_name || p.username}</div>
-                    <div className="text-[13px] text-foreground/50 truncate">@{p.username}</div>
+                    <div className="text-[13px] text-muted-foreground truncate">@{p.username}</div>
                   </div>
                   {already ? (
-                    <span className="text-[12px] text-foreground/40 px-3">Colleague</span>
+                    <span className="text-[12px] text-muted-foreground px-3">Colleague</span>
                   ) : requested ? (
-                    <span className="text-[12px] text-foreground/40 px-3">Requested</span>
+                    <span className="text-[12px] text-muted-foreground px-3">Requested</span>
                   ) : (
                     <button
                       onClick={() => onSend(p.id)}
-                      className="h-9 w-9 rounded-full glass-button grid place-items-center"
+                      className="h-9 w-9 rounded-full bg-foreground text-background grid place-items-center spring-tap"
                       aria-label="Add"
                     >
                       <Plus className="h-4 w-4" />
@@ -140,13 +153,16 @@ export default function Colleagues() {
       {/* Requests */}
       {incoming.length > 0 && (
         <section className="mb-10">
-          <h2 className="text-[13px] uppercase tracking-wider text-foreground/40 mb-3 px-1">Requests</h2>
+          <h2 className="text-[12px] uppercase tracking-[0.15em] text-muted-foreground mb-3 px-1">Requests</h2>
           <div className="space-y-2">
             {incoming.map((r) => (
-              <div key={r.id} className="glass rounded-2xl p-3 flex items-center gap-3">
+              <div key={r.id} className="rounded-2xl border border-border p-3 flex items-center gap-3">
                 <Avatar className="h-12 w-12">
                   <AvatarImage src={r.profile?.avatar_url ?? undefined} />
-                  <AvatarFallback className="bg-white/10 text-foreground">
+                  <AvatarFallback
+                    className="text-foreground text-[13px] font-medium"
+                    style={{ backgroundColor: tintFor(r.id) }}
+                  >
                     {initials(r.profile?.display_name ?? null, r.profile?.username ?? "?")}
                   </AvatarFallback>
                 </Avatar>
@@ -154,18 +170,18 @@ export default function Colleagues() {
                   <div className="text-[15px] font-medium truncate">
                     {r.profile?.display_name || r.profile?.username || "Unknown"}
                   </div>
-                  <div className="text-[12.5px] text-foreground/50 truncate">@{r.profile?.username}</div>
+                  <div className="text-[12.5px] text-muted-foreground truncate">@{r.profile?.username}</div>
                 </div>
                 <button
                   onClick={() => onDecline(r.id)}
-                  className="h-9 w-9 rounded-full glass-button grid place-items-center"
+                  className="h-9 w-9 rounded-full bg-muted grid place-items-center spring-tap"
                   aria-label="Decline"
                 >
                   <X className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => onAccept(r.id)}
-                  className="h-9 w-9 rounded-full pill-primary grid place-items-center"
+                  className="h-9 w-9 rounded-full bg-foreground text-background grid place-items-center spring-tap"
                   aria-label="Accept"
                 >
                   <Check className="h-4 w-4" />
@@ -176,45 +192,84 @@ export default function Colleagues() {
         </section>
       )}
 
-      {/* Colleagues grid */}
+      {/* Colleagues */}
       <section>
         {colleagues.length === 0 && incoming.length === 0 ? (
-          <div className="glass rounded-3xl p-12 text-center">
-            <div className="text-[15px] text-foreground/50">Find people above to add as colleagues.</div>
+          <div className="rounded-2xl border border-dashed border-border p-12 text-center">
+            <p className="text-[15px] text-muted-foreground">Find people above to add as colleagues.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {colleagues.map((p) => (
-              <div key={p.id} className="glass rounded-3xl p-5 flex flex-col items-center text-center group relative">
-                <Avatar className="h-16 w-16 mb-3">
-                  <AvatarImage src={p.avatar_url ?? undefined} />
-                  <AvatarFallback className="bg-white/10 text-foreground text-base">
-                    {initials(p.display_name, p.username)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="text-[14.5px] font-medium truncate w-full">{p.display_name || p.username}</div>
-                <div className="text-[12.5px] text-foreground/45 truncate w-full">@{p.username}</div>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="absolute top-2 right-2 h-8 w-8 rounded-full grid place-items-center opacity-0 group-hover:opacity-100 hover:bg-white/[0.08] transition-opacity"
-                      aria-label="More"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="glass-strong border-white/15">
-                    <DropdownMenuItem onClick={() => onRemove(p.id)} className="text-destructive focus:text-destructive">
-                      Remove colleague
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
-          </div>
+          <>
+            <h2 className="text-[12px] uppercase tracking-[0.15em] text-muted-foreground mb-3 px-1">
+              {colleagues.length} {colleagues.length === 1 ? "colleague" : "colleagues"}
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {colleagues.map((p) => (
+                <ProfileCard key={p.id} profile={p} onRemove={() => onRemove(p.id)} />
+              ))}
+            </div>
+          </>
         )}
       </section>
+    </div>
+  );
+}
+
+// Refined LinkedIn-style profile card
+function ProfileCard({
+  profile,
+  onRemove,
+}: {
+  profile: ColleagueProfile;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="group relative rounded-2xl border border-border p-5 flex flex-col items-center text-center bg-background hover:bg-muted/40 transition-colors">
+      {/* Tinted halo behind avatar */}
+      <div className="relative mb-3">
+        <div
+          className="absolute inset-0 rounded-full blur-md opacity-60"
+          style={{ background: tintFor(profile.id) }}
+          aria-hidden
+        />
+        <Avatar className="h-16 w-16 relative ring-2 ring-background">
+          <AvatarImage src={profile.avatar_url ?? undefined} />
+          <AvatarFallback
+            className="text-foreground text-[15px] font-medium"
+            style={{ backgroundColor: tintFor(profile.id) }}
+          >
+            {initials(profile.display_name, profile.username)}
+          </AvatarFallback>
+        </Avatar>
+      </div>
+
+      <div className="text-[14.5px] font-semibold truncate w-full leading-tight">
+        {profile.display_name || profile.username}
+      </div>
+      <div className="text-[12.5px] text-muted-foreground truncate w-full mt-0.5">
+        @{profile.username}
+      </div>
+      {(profile as any).instrument && (
+        <div className="text-[12px] text-muted-foreground truncate w-full mt-1.5">
+          {(profile as any).instrument}
+        </div>
+      )}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="absolute top-2 right-2 h-8 w-8 rounded-full grid place-items-center opacity-0 group-hover:opacity-100 hover:bg-muted transition-opacity"
+            aria-label="More"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
+            Remove colleague
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

@@ -1,35 +1,73 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Hash, Plus } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import ColabrateFeed from "@/components/spaces/ColabrateFeed";
-import RoomsPanel from "@/components/spaces/RoomsPanel";
-import { Segmented } from "@/components/ui/segmented";
-
-type Tab = "discover" | "rooms";
+import { useState } from "react";
+import { listMyRooms, type Room } from "@/lib/social";
 
 export default function Spaces() {
-  const [tab, setTab] = useState<Tab>("discover");
+  const navigate = useNavigate();
+  const loc = useLocation();
+  const [rooms, setRooms] = useState<Room[]>([]);
 
   useEffect(() => { document.title = "Spaces — Tempo"; }, []);
 
+  useEffect(() => {
+    listMyRooms().then(setRooms).catch(() => {});
+  }, [loc.key]);
+
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] flex flex-col">
-      <div className="px-6 md:px-10 pt-10">
-        <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight">Spaces</h1>
-        <div className="mt-5">
-          <Segmented
-            value={tab}
-            onChange={(v) => setTab(v as Tab)}
-            segments={[
-              { value: "discover", label: "Discover" },
-              { value: "rooms", label: "Rooms" },
-            ]}
-          />
+    <div className="max-w-2xl mx-auto px-5 sm:px-6 pt-8 sm:pt-10 pb-20">
+      <PageHeader
+        title="Spaces"
+        trailing={
+          <button
+            onClick={() => navigate("/spaces/rooms")}
+            className="text-[14px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            All rooms
+          </button>
+        }
+      />
+
+      {/* Rooms strip — horizontal, top */}
+      <div className="mt-6 -mx-5 sm:-mx-6 px-5 sm:px-6 overflow-x-auto">
+        <div className="flex gap-2 pb-1">
+          <button
+            onClick={() => navigate("/spaces/rooms")}
+            className="shrink-0 flex flex-col items-center gap-1.5 group"
+            aria-label="New room"
+          >
+            <div className="h-14 w-14 rounded-full border border-dashed border-border grid place-items-center group-hover:border-foreground/40 transition-colors">
+              <Plus className="h-5 w-5 text-muted-foreground" strokeWidth={1.8} />
+            </div>
+            <span className="text-[11px] text-muted-foreground">New</span>
+          </button>
+          {rooms.length === 0 ? (
+            <div className="self-center pl-3 text-[13px] text-muted-foreground">
+              Join rooms to chat with groups.
+            </div>
+          ) : (
+            rooms.slice(0, 12).map((r) => (
+              <button
+                key={r.id}
+                onClick={() => navigate(`/spaces/rooms?id=${r.id}`)}
+                className="shrink-0 flex flex-col items-center gap-1.5 group"
+              >
+                <div className="h-14 w-14 rounded-full bg-muted grid place-items-center spring-tap">
+                  <Hash className="h-5 w-5" strokeWidth={1.6} />
+                </div>
+                <span className="text-[11px] text-foreground/80 max-w-[64px] truncate">{r.name}</span>
+              </button>
+            ))
+          )}
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 mt-6">
-        <div key={tab} className="animate-fade-in h-full">
-          {tab === "discover" ? <ColabrateFeed /> : <RoomsPanel />}
-        </div>
+      {/* Vertical feed */}
+      <div className="mt-8">
+        <ColabrateFeed />
       </div>
     </div>
   );
