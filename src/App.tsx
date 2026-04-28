@@ -15,6 +15,7 @@ import InviteAccept from "./pages/InviteAccept.tsx";
 import Library from "./pages/Library.tsx";
 import Discover from "./pages/Discover.tsx";
 import Spaces from "./pages/Spaces.tsx";
+import Inbox from "./pages/Inbox.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/library" element={<Library />} />
               <Route path="/spaces" element={<Spaces />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/inbox" element={<Inbox />} />
               <Route path="/collegues" element={<Collegues />} />
               <Route path="/discover" element={<Discover />} />
             </Route>

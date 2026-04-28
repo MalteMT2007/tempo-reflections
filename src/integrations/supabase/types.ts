@@ -916,7 +916,7 @@ export type Database = {
       ensemble_role: "admin" | "member" | "section_member"
       event_type: "rehearsal" | "concert"
       friendship_status: "pending" | "accepted"
-      invite_status: "pending" | "accepted" | "revoked"
+      invite_status: "pending" | "accepted" | "revoked" | "declined"
       project_status: "planning" | "rehearsing" | "completed"
       room_invite_status: "pending" | "accepted" | "declined"
       room_role: "admin" | "member"
@@ -1051,7 +1051,7 @@ export const Constants = {
       ensemble_role: ["admin", "member", "section_member"],
       event_type: ["rehearsal", "concert"],
       friendship_status: ["pending", "accepted"],
-      invite_status: ["pending", "accepted", "revoked"],
+      invite_status: ["pending", "accepted", "revoked", "declined"],
       project_status: ["planning", "rehearsing", "completed"],
       room_invite_status: ["pending", "accepted", "declined"],
       room_role: ["admin", "member"],
