@@ -190,6 +190,9 @@ const Library = () => {
 
       {uploadOpen && (
         <UploadDialog
+          existingCategories={Array.from(
+            new Set(scores.flatMap((s) => s.tags || []).filter(Boolean))
+          ).sort((a, b) => a.localeCompare(b))}
           onClose={() => setUploadOpen(false)}
           onUploaded={() => { setUploadOpen(false); refresh(); }}
         />
