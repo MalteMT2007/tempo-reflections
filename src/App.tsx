@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/layouts/AppLayout";
-import Index from "./pages/Index.tsx";
+import Home from "./pages/Home.tsx";
 import Auth from "./pages/Auth.tsx";
 import Profile from "./pages/Profile.tsx";
 import Colleagues from "./pages/Colleagues.tsx";
@@ -42,7 +42,7 @@ const App = () => (
 
             {/* App shell with sidebar */}
             <Route element={<Protected><AppLayout /></Protected>}>
-              <Route path="/" element={<Navigate to="/library" replace />} />
+              <Route path="/" element={<Home />} />
               <Route path="/practise" element={<Navigate to="/library" replace />} />
               <Route path="/ensembles" element={<Ensembles />} />
               <Route path="/ensembles/:id" element={<EnsembleDetail />} />
