@@ -124,13 +124,23 @@ const Library = () => {
         ) : view === "grid" ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-6">
             {filtered.map((s) => (
-              <ScoreCardGrid key={s.id} score={s} onOpen={() => setDetail(s)} />
+              <ScoreCardGrid
+                key={s.id}
+                score={s}
+                onOpen={() => setOpenScore(s)}
+                onChanged={refresh}
+              />
             ))}
           </div>
         ) : (
           <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
             {filtered.map((s) => (
-              <ScoreRow key={s.id} score={s} onOpen={() => setDetail(s)} />
+              <ScoreRow
+                key={s.id}
+                score={s}
+                onOpen={() => setOpenScore(s)}
+                onChanged={refresh}
+              />
             ))}
           </ul>
         )}
@@ -140,15 +150,6 @@ const Library = () => {
         <UploadDialog
           onClose={() => setUploadOpen(false)}
           onUploaded={() => { setUploadOpen(false); refresh(); }}
-        />
-      )}
-
-      {detail && (
-        <ScoreDetail
-          score={detail}
-          onClose={() => setDetail(null)}
-          onOpen={() => { const s = detail; setDetail(null); setOpenScore(s); }}
-          onDeleted={() => { setDetail(null); refresh(); }}
         />
       )}
 
