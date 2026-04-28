@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Plus,
-  Search,
   FileMusic,
   Trash2,
   X,
@@ -11,6 +11,10 @@ import {
   List as ListIcon,
   MoreHorizontal,
   Star,
+  ArrowDownAZ,
+  ArrowUpAZ,
+  Clock,
+  ChevronDown,
 } from "lucide-react";
 import {
   Score,
@@ -27,27 +31,37 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScoreReader } from "@/components/ScoreReader";
 import { PageHeader } from "@/components/PageHeader";
-import { ProgressHeaderCard } from "@/components/practice/ProgressHeaderCard";
-import { PracticeHistoryOverlay } from "@/components/practice/PracticeHistoryOverlay";
+import { markScoreOpened, getOpenedAt } from "@/lib/recentScores";
 
 type View = "grid" | "list";
+type Sort = "az" | "za" | "recent";
 const VIEW_KEY = "tempo:lib-view";
+const SORT_KEY = "tempo:lib-sort";
 const OPEN_SCORE_KEY = "tempo:lib-open-score";
+
+const SORT_LABEL: Record<Sort, string> = {
+  az: "A–Z",
+  za: "Z–A",
+  recent: "Recently opened",
+};
 
 const Library = () => {
   const [scores, setScores] = useState<Score[]>([]);
-  const [query, setQuery] = useState("");
   const [view, setView] = useState<View>(
     (typeof localStorage !== "undefined" && (localStorage.getItem(VIEW_KEY) as View)) || "list"
   );
+  const [sort, setSort] = useState<Sort>(
+    (typeof localStorage !== "undefined" && (localStorage.getItem(SORT_KEY) as Sort)) || "recent"
+  );
   const [uploadOpen, setUploadOpen] = useState(false);
   const [openScore, setOpenScore] = useState<Score | null>(null);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => { localStorage.setItem(VIEW_KEY, view); }, [view]);
+  useEffect(() => { localStorage.setItem(SORT_KEY, sort); }, [sort]);
 
   const refresh = async () => {
     setLoading(true);
