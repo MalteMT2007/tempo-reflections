@@ -1,17 +1,25 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useState } from "react";
-import { BookOpen, Users, UserPlus, Users2, Search, Home as HomeIcon } from "lucide-react";
+import { BookOpen, Users, Users2, Search, Music2 } from "lucide-react";
 import { GlobalSearchOverlay } from "./GlobalSearchOverlay";
 
 const items = [
-  { to: "/", label: "Home", Icon: HomeIcon, exact: true },
+  { to: "/reader", label: "Reader", Icon: Music2 },
   { to: "/library", label: "Library", Icon: BookOpen },
+  { to: "/", label: "Home", Icon: Users2, hideLabel: false }, // landing pills
   { to: "/ensembles", label: "Ensembles", Icon: Users, match: ["/ensembles"] },
-  { to: "/colleagues", label: "Colleagues", Icon: UserPlus },
   { to: "/spaces/rooms", label: "Rooms", Icon: Users2, match: ["/spaces"] },
 ];
 
-export function BottomDock() {
+// We re-define items cleanly below.
+const dockItems = [
+  { to: "/reader", label: "Reader", Icon: Music2 },
+  { to: "/library", label: "Library", Icon: BookOpen },
+  { to: "/ensembles", label: "Ensembles", Icon: Users, match: ["/ensembles"] },
+  { to: "/spaces/rooms", label: "Rooms", Icon: Users2, match: ["/spaces"] },
+];
+
+export function BottomDock({ inReader }: { inReader?: boolean }) {
   const { pathname } = useLocation();
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -19,17 +27,16 @@ export function BottomDock() {
     <>
       <nav
         aria-label="Primary"
-        className="fixed left-1/2 -translate-x-1/2 z-40 pointer-events-none"
+        className="fixed left-1/2 -translate-x-1/2 z-[50] pointer-events-none"
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
       >
         <ul
           className="pointer-events-auto flex items-center gap-1 px-2 py-2 rounded-full border border-border/60 bg-background/75 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.25)]"
         >
-          {items.map(({ to, label, Icon, match, exact }) => {
-            const active = exact
-              ? pathname === to
-              : pathname === to ||
-                (match?.some((m) => pathname === m || pathname.startsWith(m + "/")) ?? false);
+          {dockItems.map(({ to, label, Icon, match }) => {
+            const active =
+              pathname === to ||
+              (match?.some((m) => pathname === m || pathname.startsWith(m + "/")) ?? false);
             return (
               <li key={to}>
                 <NavLink

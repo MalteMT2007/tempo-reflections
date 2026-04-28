@@ -77,6 +77,21 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
   const [chromeVisible, setChromeVisible] = useState(true);
   const [annotateOpen, setAnnotateOpen] = useState(false);
 
+  // Track whether a page overlay (Library, Ensembles, etc.) is covering the
+  // reader. While covered, the reader's own top/bottom toolbars must be hidden
+  // so they only ever appear when the user is actually reading.
+  const [overlayActive, setOverlayActive] = useState(
+    typeof document !== "undefined" && document.body.hasAttribute("data-page-overlay")
+  );
+  useEffect(() => {
+    const sync = () =>
+      setOverlayActive(document.body.hasAttribute("data-page-overlay"));
+    sync();
+    const obs = new MutationObserver(sync);
+    obs.observe(document.body, { attributes: true, attributeFilter: ["data-page-overlay"] });
+    return () => obs.disconnect();
+  }, []);
+
   useEffect(() => {
     document.body.setAttribute("data-reader-open", "true");
     window.dispatchEvent(new Event("reader-open-change"));
@@ -85,6 +100,8 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       window.dispatchEvent(new Event("reader-open-change"));
     };
   }, []);
+
+  const showChrome = chromeVisible && !overlayActive;
 
   // Load PDF
   useEffect(() => {
@@ -382,7 +399,7 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       {/* === ForScore-style floating top toolbar (3 glass pills) === */}
       <div
         className={`pointer-events-none fixed top-0 inset-x-0 z-40 px-3 pt-3 transition-all duration-300 ${
-          chromeVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-3"
+          showChrome ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-3"
         }`}
       >
         <div className="flex items-center justify-between gap-2 max-w-[1400px] mx-auto">
@@ -427,7 +444,7 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       {annotateOpen && (
         <div
           className={`pointer-events-none fixed bottom-6 inset-x-0 z-40 px-3 transition-all duration-300 ${
-            chromeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+            showChrome ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
           }`}
         >
           <div className="flex justify-center">

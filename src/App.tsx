@@ -19,6 +19,7 @@ import SpacesRooms from "./pages/SpacesRooms.tsx";
 import Inbox from "./pages/Inbox.tsx";
 import Messages from "./pages/Messages.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Reader from "./pages/Reader.tsx";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
             {/* App shell with sidebar */}
             <Route element={<Protected><AppLayout /></Protected>}>
               <Route path="/" element={<Home />} />
+              <Route path="/reader" element={<Reader />} />
               <Route path="/practise" element={<Navigate to="/library" replace />} />
               <Route path="/ensembles" element={<Ensembles />} />
               <Route path="/ensembles/:id" element={<EnsembleDetail />} />
