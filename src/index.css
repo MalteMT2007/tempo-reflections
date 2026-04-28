@@ -171,7 +171,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    color-scheme: dark;
+    color-scheme: light dark;
   }
 
   html, body, #root {
@@ -183,14 +183,7 @@
     @apply text-foreground antialiased;
     font-feature-settings: "kern", "liga", "ss01";
     letter-spacing: -0.015em;
-    background-color: hsl(var(--background));
-    background-image:
-      radial-gradient(at 18% 14%, hsl(var(--mesh-1) / 0.55) 0px, transparent 55%),
-      radial-gradient(at 82% 18%, hsl(var(--mesh-2) / 0.5) 0px, transparent 55%),
-      radial-gradient(at 30% 88%, hsl(var(--mesh-3) / 0.45) 0px, transparent 55%),
-      radial-gradient(at 78% 78%, hsl(var(--mesh-4) / 0.45) 0px, transparent 55%);
-    background-attachment: fixed;
-    background-size: 100% 100%;
+    background: hsl(var(--background));
     min-height: 100vh;
   }
 
