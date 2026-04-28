@@ -365,22 +365,43 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
 
       {/* Canvas area */}
       <div ref={containerRef} className="flex-1 overflow-auto flex items-start justify-center py-4 relative">
-        <div className="relative shadow-elev bg-paper" style={{ width: renderSize.w || undefined, height: renderSize.h || undefined }}>
+        <div
+          className={`relative shadow-elev bg-paper ${
+            flipDir === "next" ? "animate-page-next" : flipDir === "prev" ? "animate-page-prev" : ""
+          }`}
+          style={{ width: renderSize.w || undefined, height: renderSize.h || undefined }}
+        >
           <canvas ref={canvasRef} className="block" />
           <canvas ref={overlayRef} className="absolute inset-0 pointer-events-none" />
+
+          {/* Tap zones — finger only. Sit beneath drawing/aux layer so pencil keeps drawing. */}
+          <div
+            className="absolute inset-y-0 left-0 w-1/4 z-10"
+            style={{ touchAction: "manipulation" }}
+            onPointerDown={handleZoneTap("prev")}
+            aria-label="Previous page"
+          />
+          <div
+            className="absolute inset-y-0 right-0 w-1/4 z-10"
+            style={{ touchAction: "manipulation" }}
+            onPointerDown={handleZoneTap("next")}
+            aria-label="Next page"
+          />
+
           {tool === "draw" ? (
             <DrawingCanvas
               width={renderSize.w}
               height={renderSize.h}
               color={color}
               widthScale={width / 4}
+              acceptAll={false}
               onStrokeComplete={handleStrokeComplete}
-              className="absolute inset-0"
+              className="absolute inset-0 z-20"
             />
           ) : tool === "pan" ? null : (
             <div
               ref={drawRef as unknown as React.RefObject<HTMLDivElement>}
-              className="absolute inset-0"
+              className="absolute inset-0 z-20"
               style={{
                 touchAction: "none",
                 cursor: tool === "text" ? "text" : "crosshair",
@@ -389,6 +410,15 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
             />
           )}
         </div>
+
+        {/* Minimal floating page counter */}
+        {pageCount > 0 && (
+          <div className="pointer-events-none fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
+            <div className="rounded-full bg-ink/55 text-paper text-[11px] tabular px-3 py-1 backdrop-blur-sm">
+              {pageIndex + 1} / {pageCount}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Page nav */}
