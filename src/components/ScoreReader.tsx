@@ -70,6 +70,16 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
   const [redoStack, setRedoStack] = useState<Annotation[]>([]); // re-creatable
   const [toolbarOpen, setToolbarOpen] = useState(true);
 
+  // Signal globally that the reader is open (used by AppLayout to swap dock <-> hamburger)
+  useEffect(() => {
+    document.body.setAttribute("data-reader-open", "true");
+    window.dispatchEvent(new Event("reader-open-change"));
+    return () => {
+      document.body.removeAttribute("data-reader-open");
+      window.dispatchEvent(new Event("reader-open-change"));
+    };
+  }, []);
+
   // Load PDF
   useEffect(() => {
     let cancelled = false;
