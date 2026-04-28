@@ -344,6 +344,8 @@ const ScoreCardGrid = ({
   onOpen: () => void;
   onChanged: () => void;
 }) => {
+  const { user } = useAuth();
+  const isShared = !!user && user.id !== score.owner_id;
   const cover = (score as any).cover_url as string | undefined;
   return (
     <div className="group relative">
@@ -358,6 +360,11 @@ const ScoreCardGrid = ({
           )}
           {score.favorite && (
             <Star className="absolute top-2 left-2 h-3.5 w-3.5 fill-foreground text-foreground drop-shadow" />
+          )}
+          {isShared && (
+            <div className="absolute top-2 right-2">
+              <SharedBadge />
+            </div>
           )}
         </div>
         <div className="px-0.5 pt-3 pr-8">
@@ -386,6 +393,8 @@ const ScoreRow = ({
   onOpen: () => void;
   onChanged: () => void;
 }) => {
+  const { user } = useAuth();
+  const isShared = !!user && user.id !== score.owner_id;
   const cover = (score as any).cover_url as string | undefined;
   return (
     <li className="flex items-center gap-2 pr-2 hover:bg-muted/60 transition-colors">
@@ -401,11 +410,12 @@ const ScoreRow = ({
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {score.favorite && <Star className="h-3 w-3 fill-foreground text-foreground shrink-0" />}
             <p className="text-[15px] font-medium text-foreground truncate leading-tight">
               {score.title}
             </p>
+            {isShared && <SharedBadge />}
           </div>
           {score.composer && (
             <p className="text-[13px] text-muted-foreground truncate mt-0.5">{score.composer}</p>
