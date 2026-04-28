@@ -112,6 +112,8 @@ export default {
         "pulse-soft": { "0%, 100%": { opacity: "0.6" }, "50%": { opacity: "1" } },
         "pendulum": { "0%": { transform: "rotate(-14deg)" }, "100%": { transform: "rotate(14deg)" } },
         "breathe": { "0%, 100%": { transform: "scale(1)", opacity: "0.5" }, "50%": { transform: "scale(1.04)", opacity: "0.8" } },
+        "page-next": { "0%": { opacity: "0", transform: "translateX(12px)" }, "100%": { opacity: "1", transform: "translateX(0)" } },
+        "page-prev": { "0%": { opacity: "0", transform: "translateX(-12px)" }, "100%": { opacity: "1", transform: "translateX(0)" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -122,6 +124,8 @@ export default {
         "tick": "tick 0.15s ease-out",
         "pulse-soft": "pulse-soft 3s ease-in-out infinite",
         "breathe": "breathe 4s ease-in-out infinite",
+        "page-next": "page-next 200ms cubic-bezier(0.2,0.7,0.2,1) both",
+        "page-prev": "page-prev 200ms cubic-bezier(0.2,0.7,0.2,1) both",
       },
     },
   },
