@@ -8,7 +8,7 @@ import AppLayout from "@/layouts/AppLayout";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Profile from "./pages/Profile.tsx";
-import Collegues from "./pages/Collegues.tsx";
+import Colleagues from "./pages/Colleagues.tsx";
 import Ensembles from "./pages/Ensembles.tsx";
 import EnsembleDetail from "./pages/EnsembleDetail.tsx";
 import InviteAccept from "./pages/InviteAccept.tsx";
@@ -48,7 +48,8 @@ const App = () => (
               <Route path="/spaces" element={<Spaces />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/inbox" element={<Inbox />} />
-              <Route path="/collegues" element={<Collegues />} />
+              <Route path="/colleagues" element={<Colleagues />} />
+              <Route path="/collegues" element={<Navigate to="/colleagues" replace />} />
               <Route path="/discover" element={<Discover />} />
             </Route>
 
