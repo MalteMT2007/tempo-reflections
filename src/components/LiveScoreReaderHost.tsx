@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ScoreReader } from "@/components/ScoreReader";
 import { listMyScores, type Score } from "@/lib/scores";
 import { getRecentMap } from "@/lib/recentScores";
@@ -13,6 +14,7 @@ import { getRecentMap } from "@/lib/recentScores";
  */
 export function LiveScoreReaderHost() {
   const [score, setScore] = useState<Score | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
