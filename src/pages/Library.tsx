@@ -19,6 +19,8 @@ import {
 } from "@/lib/scores";
 import { ScoreReader } from "@/components/ScoreReader";
 import { PageHeader } from "@/components/PageHeader";
+import { ProgressHeaderCard } from "@/components/practice/ProgressHeaderCard";
+import { PracticeHistoryOverlay } from "@/components/practice/PracticeHistoryOverlay";
 
 type View = "grid" | "list";
 const VIEW_KEY = "tempo:lib-view";
@@ -34,6 +36,7 @@ const Library = () => {
   const [detail, setDetail] = useState<Score | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => { localStorage.setItem(VIEW_KEY, view); }, [view]);
 
@@ -83,6 +86,11 @@ const Library = () => {
             </>
           }
         />
+
+        {/* Progress Header — gateway to practice history */}
+        <div className="mt-6">
+          <ProgressHeaderCard onOpen={() => setHistoryOpen(true)} />
+        </div>
 
         {/* Search */}
         <div className="relative mt-6 mb-6">
@@ -139,6 +147,8 @@ const Library = () => {
       {openScore && (
         <ScoreReader score={openScore} onClose={() => setOpenScore(null)} />
       )}
+
+      {historyOpen && <PracticeHistoryOverlay onClose={() => setHistoryOpen(false)} />}
     </div>
   );
 };
