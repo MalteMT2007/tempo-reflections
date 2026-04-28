@@ -2,11 +2,17 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Loader2, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { listMyEnsembles, createEnsemble, ensembleMembers, DbEnsemble } from "@/lib/api";
+import { listMyEnsembles, createEnsemble, ensembleMembers, DbEnsemble, EnsembleType } from "@/lib/api";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type MemberRow = { user_id: string; role: string; profiles: { username: string; display_name: string | null; instrument: string | null } | null };
+
+const TYPE_LABEL: Record<EnsembleType, string> = {
+  orchestra: "Orchestra",
+  band: "Band",
+  choir: "Choir",
+};
 
 const Ensembles = () => {
   const { user } = useAuth();
@@ -15,6 +21,7 @@ const Ensembles = () => {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [type, setType] = useState<EnsembleType>("orchestra");
   const [desc, setDesc] = useState("");
 
   useEffect(() => { document.title = "Ensembles — Tempo"; }, []);
@@ -33,15 +40,18 @@ const Ensembles = () => {
   const create = async () => {
     if (!name.trim()) return;
     try {
-      await createEnsemble(name.trim(), desc.trim());
-      setName(""); setDesc(""); setOpen(false); refresh();
+      await createEnsemble(name.trim(), type, desc.trim());
+      setName(""); setDesc(""); setType("orchestra"); setOpen(false); refresh();
     } catch (e: any) { toast.error(e.message ?? "Could not create"); }
   };
 
   return (
     <div className="max-w-4xl mx-auto px-6 md:px-10 py-10 md:py-14">
-      <header className="flex items-center justify-between mb-10">
-        <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight">Ensembles</h1>
+      <header className="flex items-end justify-between mb-10">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">Ensembles</p>
+          <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight leading-none">Your ensembles</h1>
+        </div>
         <button
           onClick={() => setOpen(true)}
           className="h-11 w-11 rounded-full glass-button grid place-items-center"
@@ -65,6 +75,11 @@ const Ensembles = () => {
                 to={`/ensembles/${e.id}`}
                 className="glass rounded-3xl p-6 block spring-tap hover:bg-white/[0.10] transition-colors"
               >
+                {e.type && (
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-foreground/45 mb-2">
+                    {TYPE_LABEL[e.type]}
+                  </div>
+                )}
                 <div className="text-[20px] font-semibold tracking-tight truncate">{e.name}</div>
                 <div className="mt-3 flex items-center gap-1.5 text-[12.5px] text-foreground/45">
                   <Users className="h-3.5 w-3.5" />
@@ -77,16 +92,39 @@ const Ensembles = () => {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="glass-strong border-white/15">
-          <DialogHeader><DialogTitle className="text-[20px]">New ensemble</DialogTitle></DialogHeader>
+        <DialogContent className="glass-strong border-white/15 space-y-3">
+          <DialogHeader>
+            <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground">New</p>
+            <DialogTitle className="text-[28px] font-semibold tracking-tight leading-none">Ensemble</DialogTitle>
+          </DialogHeader>
           <input
             autoFocus value={name} onChange={(e) => setName(e.target.value)}
             placeholder="Name"
+            maxLength={80}
             className="glass-input w-full h-12 px-4 rounded-2xl text-[15px]"
           />
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-2">Type</p>
+            <div className="grid grid-cols-3 gap-2">
+              {(Object.keys(TYPE_LABEL) as EnsembleType[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setType(t)}
+                  className={`h-11 rounded-2xl text-[13px] font-medium transition border ${
+                    type === t
+                      ? "border-foreground/80 bg-foreground/10"
+                      : "border-white/10 text-foreground/60 hover:text-foreground"
+                  }`}
+                >
+                  {TYPE_LABEL[t]}
+                </button>
+              ))}
+            </div>
+          </div>
           <textarea
-            rows={2} value={desc} onChange={(e) => setDesc(e.target.value)}
+            rows={3} value={desc} onChange={(e) => setDesc(e.target.value)}
             placeholder="Description (optional)"
+            maxLength={500}
             className="glass-input w-full px-4 py-3 rounded-2xl text-[14px] resize-none"
           />
           <button
