@@ -98,14 +98,18 @@ const Profile = () => {
     if (!user || !canSave) return;
     setSaving(true);
     try {
-      await updateProfile(user.id, {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
         username: form.username.trim().toLowerCase(),
         display_name: form.display_name.trim() || null,
         instrument: form.instrument.trim() || null,
         genre_label: form.genre_label.trim() || null,
         bio: form.bio.trim() || null,
         avatar_url: form.avatar_url || null,
-      });
+        onboarding_complete: true,
+      }, { onConflict: "id" });
+      if (error) throw error;
       setOriginalUsername(form.username.trim().toLowerCase());
       toast.success("Profile saved.");
     } catch (e: any) {
