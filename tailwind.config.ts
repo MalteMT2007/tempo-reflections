@@ -112,6 +112,8 @@ export default {
         "pulse-soft": { "0%, 100%": { opacity: "0.6" }, "50%": { opacity: "1" } },
         "pendulum": { "0%": { transform: "rotate(-14deg)" }, "100%": { transform: "rotate(14deg)" } },
         "breathe": { "0%, 100%": { transform: "scale(1)", opacity: "0.5" }, "50%": { transform: "scale(1.04)", opacity: "0.8" } },
+        "page-next": { "0%": { opacity: "0", transform: "translateX(12px)" }, "100%": { opacity: "1", transform: "translateX(0)" } },
+        "page-prev": { "0%": { opacity: "0", transform: "translateX(-12px)" }, "100%": { opacity: "1", transform: "translateX(0)" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
