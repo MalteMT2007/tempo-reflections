@@ -1,11 +1,11 @@
 import { useEffect } from "react";
 import { NavLink } from "react-router-dom";
-import { X, Users, BookOpen, Hash, UserPlus } from "lucide-react";
+import { X, Users, BookOpen, Users2, UserPlus } from "lucide-react";
 
 const items = [
   { to: "/library", label: "Library", Icon: BookOpen },
   { to: "/ensembles", label: "Ensemble", Icon: Users },
-  { to: "/spaces", label: "Social", Icon: Hash },
+  { to: "/spaces", label: "Social", Icon: Users2 },
   { to: "/colleagues", label: "Colleagues", Icon: UserPlus },
 ];
 
