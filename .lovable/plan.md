@@ -1,66 +1,96 @@
-# Ensembles v2 — Plan
+# Redesign: Apple-style + Spaces social hub
 
-Build a full ensemble management layer on top of the existing `ensembles` + `ensemble_members` tables. Adds roles, sections, projects, events, project-scoped sheet music with per-section/per-member assignments, and an invite flow.
+## 1. Typography (global)
+Update `src/index.css` and `tailwind.config.ts`:
+- Set `--font-sans` and Tailwind `fontFamily.sans` to: `-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif`
+- Remove any serif/display fonts (Playfair, etc.) from imports and config
+- Apply to `body` so every component inherits
 
-## 1. Database (one migration)
+## 2. Navigation — 5 tabs, sidebar-first
 
-New enums:
-- `ensemble_role`: `admin`, `member`, `section_member`
-- `project_status`: `planning`, `rehearsing`, `completed`
-- `event_type`: `rehearsal`, `concert`
-- `invite_status`: `pending`, `accepted`, `revoked`
-- `assignee_type`: `section`, `member`
+Replace current `AppMenu` with a new `AppSidebar` (shadcn sidebar, `collapsible="icon"`) with 5 routes:
 
-Schema changes:
-- `ensemble_members`: add `role ensemble_role default 'member'`, `section_id uuid null`. Migrate existing `role text` ('creator','member') → `'admin'`/`'member'`. Creator stays `admin`.
-- New `ensemble_sections (id, ensemble_id, name, created_at)`
-- New `ensemble_invites (id, ensemble_id, email nullable, invitee_user_id nullable, role, section_id nullable, status, token uuid unique, invited_by, created_at, accepted_at)` — supports both email and direct username invites
-- New `ensemble_projects (id, ensemble_id, title, description, status, created_by, created_at, updated_at)`
-- New `project_events (id, project_id, type, starts_at timestamptz, location, notes, created_at)`
-- New `project_scores (id, project_id, title, composer, file_url, score_id nullable → existing scores, created_by, created_at)` — separate from personal `scores` library; can optionally link
-- New `project_score_assignments (id, project_score_id, assignee_type, assignee_id)` — `assignee_id` references either `ensemble_sections.id` or `auth.users.id` depending on type
+| Tab | Route | Purpose |
+|---|---|---|
+| Practise | `/practise` | personal practice (scores + annotations) |
+| Ensemble | `/ensembles` | existing ensembles list/detail |
+| Library | `/library` | personal sheet music library |
+| Spaces | `/spaces` | social hub (Colabrate + Rooms) |
+| Profile | `/profile` | profile & settings |
 
-Security definer helpers (avoid RLS recursion):
-- `is_ensemble_admin(_ensemble uuid, _user uuid) returns boolean`
-- `ensemble_member_section(_ensemble uuid, _user uuid) returns uuid`
-- `can_view_project_score(_pscore uuid, _user uuid) returns boolean` — true if admin, or assigned to user's section, or assigned to user directly
+- Sidebar visible on `md+` (iPad/desktop), drawer on mobile via `SidebarTrigger`
+- Update `App.tsx` to wrap routes in `SidebarProvider` + `AppSidebar` layout
+- Map current `Index` → `Practise`, current `Scores` → `Library`
 
-RLS:
-- Sections/projects/events: members can SELECT; only admins INSERT/UPDATE/DELETE
-- Project scores: admins see all; members see only assigned; admins manage
-- Invites: admin can manage; invitee (by matching email or user_id) can SELECT and UPDATE own
-- Backfill: existing `created_by` becomes `admin` in `ensemble_members`
+## 3. Spaces — combined social hub
 
-## 2. API layer (`src/lib/ensembles.ts` — new file)
+Single page `/spaces` with a segmented control at top: **Discover** | **Rooms**.
 
-Centralized functions: `getEnsemble`, `listSections/createSection/renameSection/deleteSection`, `listMembers` (with profile join + role + section), `updateMemberRole`, `removeMember`, `listInvites/createInvite/acceptInvite/revokeInvite`, `listProjects/createProject/updateProject`, `listEvents/createEvent/deleteEvent`, `listProjectScores/createProjectScore/assignScore/unassignScore`, `uploadProjectScoreFile`.
+### Discover (Colabrate feed)
+- Twitter-style feed of short posts (text, max ~500 chars)
+- Like, comment, repost actions
+- Default tab "Following" (posts from followed users) + "All" tab
+- Compose button → modal to write a new post
+- "Colabrate" spelled exactly like this in UI labels
 
-Storage: reuse `scores` bucket; project files at `ensemble/{ensembleId}/{projectId}/{filename}`. Add policy allowing ensemble members to read, admins to write.
+### Rooms
+Two-column iPad layout: rooms list (left) + active room messages (right).
+- **Discover rooms**: searchable list of public rooms (name, description, member count, Join button)
+- **My rooms**: rooms the user has joined
+- **Create room**: name, description, optional avatar, public/private toggle
+- **Inside a room**: messages with avatar, display name, timestamp; composer at bottom
+- **Invites**: admins can invite by username search; invitee gets a row in `room_invites` and accepts/declines from a notifications area inside Rooms
+- **Leave room** button
+- Private rooms hidden from search; joinable only via invite
 
-## 3. Routes & UI
+## 4. Database (new tables, all RLS-protected)
 
-- New route `/ensembles/:id` → `EnsembleDetail.tsx` with tabs (shadcn `Tabs`): **Overview**, **Members**, **Projects**, **Settings**
-- `Ensembles.tsx` list page links each card to `/ensembles/:id`
-- Modal: `InviteMemberDialog` — toggle email vs colleague (search `profiles`), pick role, pick section (required if `section_member`)
-- Components: `MembersTab`, `ProjectsTab`, `ProjectDetail` (events list + scores list), `SettingsTab` (sections CRUD + ensemble metadata + leave/delete), `RoleBadge`, `SectionBadge`, `AssignmentChips`, `AddEventDialog`, `AddProjectScoreDialog`, `AssignScoreDialog`
-- Invite acceptance: route `/invites/:token` → calls `acceptInvite`, redirects to ensemble. Email link is optional for now (we surface pending invites in-app under a new "Invites" entry on the home/AppMenu).
+```text
+posts(id, author_id, content, created_at)
+post_likes(post_id, user_id, created_at)   PK(post_id, user_id)
+post_comments(id, post_id, author_id, content, created_at)
+post_reposts(post_id, user_id, created_at) PK(post_id, user_id)
 
-## 4. UX details
+rooms(id, name, description, avatar_url, is_public, created_by, created_at)
+room_members(room_id, user_id, role: 'admin'|'member', joined_at) PK(room_id, user_id)
+room_messages(id, room_id, author_id, content, created_at)
+room_invites(id, room_id, invitee_id, invited_by, status: 'pending'|'accepted'|'declined', created_at)
+```
 
-- Role badges on every member card: "Admin" / "Member" / section name (for section members)
-- Pending invites listed in Members tab with revoke button + status pill
-- Score cards show chips of assignments
-- Members only see scores assigned to them or their section; admins see all (enforced both client-side and via RLS)
-- Empty states throughout, consistent with the existing serif/paper aesthetic
+Helper SECURITY DEFINER fn: `is_room_member(room_id, user_id)`, `is_room_admin(room_id, user_id)`.
 
-## 5. Out of scope (this round)
+RLS highlights:
+- `posts`: select for authenticated; insert/update/delete by author
+- `post_likes/comments/reposts`: select for authenticated; insert/delete by self
+- `rooms`: select if `is_public` OR member; insert by creator; update/delete by admin
+- `room_members`: select if member; insert by self for public rooms or via accepted invite; delete by self or admin
+- `room_messages`: select/insert if `is_room_member`
+- `room_invites`: select by invitee or room admin; insert by admin; update by invitee
+- Trigger: on `rooms` insert, add creator as `admin` member
 
-- Actually sending invite emails (just generate token + show shareable link / list pending). Easy to add later via Lovable Emails.
-- Realtime updates
-- Calendar view (timeline = vertical chronological list)
+Realtime enabled on `room_messages` and `posts` for live feed.
 
-## Technical notes
+## 5. New files
+- `src/components/AppSidebar.tsx` — 5-tab sidebar
+- `src/layouts/AppLayout.tsx` — sidebar provider + outlet
+- `src/pages/Practise.tsx` — rename/repoint of Index
+- `src/pages/Library.tsx` — personal scores library
+- `src/pages/Spaces.tsx` — segmented Discover/Rooms shell
+- `src/components/spaces/ColabrateFeed.tsx`
+- `src/components/spaces/ComposePost.tsx`
+- `src/components/spaces/PostCard.tsx`
+- `src/components/spaces/RoomsPanel.tsx` (list + create + search)
+- `src/components/spaces/RoomView.tsx` (messages + composer + invites)
+- `src/components/spaces/CreateRoomDialog.tsx`
+- `src/components/spaces/InviteToRoomDialog.tsx`
+- `src/lib/social.ts` — API helpers for posts, rooms, messages, invites
 
-- Store both date and time as a single `timestamptz starts_at` for events to keep sorting trivial.
-- `project_score_assignments.assignee_id` is a plain uuid (no FK) since it polymorphically points to sections or users; integrity enforced by triggers/checks.
-- `accept_invite(token)` implemented as a SECURITY DEFINER RPC: validates token, inserts `ensemble_members` row with role+section, marks invite accepted. Avoids needing the invitee to have direct insert rights on `ensemble_members`.
+## 6. Edited files
+- `src/index.css`, `tailwind.config.ts` — Apple system font
+- `src/App.tsx` — new layout + routes
+- `src/integrations/supabase/types.ts` — regenerated after migration
+
+## Out of scope
+- Push notifications (in-app notification badge only)
+- Image/file uploads in posts and messages (text-only v1)
+- Threaded replies to comments (flat comments)
