@@ -399,7 +399,7 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       {/* === ForScore-style floating top toolbar (3 glass pills) === */}
       <div
         className={`pointer-events-none fixed top-0 inset-x-0 z-40 px-3 pt-3 transition-all duration-300 ${
-          chromeVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-3"
+          showChrome ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-3"
         }`}
       >
         <div className="flex items-center justify-between gap-2 max-w-[1400px] mx-auto">
@@ -444,7 +444,7 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       {annotateOpen && (
         <div
           className={`pointer-events-none fixed bottom-6 inset-x-0 z-40 px-3 transition-all duration-300 ${
-            chromeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+            showChrome ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
           }`}
         >
           <div className="flex justify-center">
