@@ -3,18 +3,15 @@ import { Dashboard } from "@/components/Dashboard";
 import { SessionSetup } from "@/components/SessionSetup";
 import { PracticeMode } from "@/components/PracticeMode";
 import { Reflection } from "@/components/Reflection";
-import { Onboarding } from "@/components/Onboarding";
+import { ProfileOnboarding } from "@/components/ProfileOnboarding";
 import {
-  Profile,
   Session,
-  loadProfile,
-  saveProfile,
   loadSessions,
   saveSession,
   computePieceStats,
 } from "@/lib/storage";
 import { useAuth } from "@/contexts/AuthContext";
-import { getProfile, updateProfile, recordSession } from "@/lib/api";
+import { getProfile, recordSession, DbProfile } from "@/lib/api";
 
 type Phase = "dashboard" | "setup" | "practice" | "reflect";
 type Resume = { title: string; byline: string } | null;
@@ -34,7 +31,7 @@ type Draft = {
 const Index = () => {
   const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>("dashboard");
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<DbProfile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -45,33 +42,18 @@ const Index = () => {
     byline: p.byline,
   }));
 
-  // Load profile: try Cloud first, fall back to local
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const local = loadProfile();
-      if (user) {
-        try {
-          const db = await getProfile(user.id);
-          if (db?.instrument && db?.genre) {
-            const merged: Profile = {
-              instrument: db.instrument,
-              genre: (db.genre as Profile["genre"]) ?? "classical",
-              genreLabel: db.genre_label ?? undefined,
-              createdAt: local?.createdAt ?? Date.now(),
-            };
-            if (!cancelled) {
-              saveProfile(merged);
-              setProfile(merged);
-              setProfileLoaded(true);
-            }
-            return;
-          }
-        } catch { /* ignore */ }
-      }
-      if (!cancelled) {
-        setProfile(local);
-        setProfileLoaded(true);
+      if (!user) { setProfileLoaded(true); return; }
+      try {
+        const db = await getProfile(user.id);
+        if (!cancelled) {
+          setProfile(db);
+          setProfileLoaded(true);
+        }
+      } catch {
+        if (!cancelled) setProfileLoaded(true);
       }
     })();
     return () => { cancelled = true; };
@@ -94,7 +76,6 @@ const Index = () => {
   const finalize = (s: Session) => {
     saveSession(s);
     setSessions(loadSessions());
-    // Sync to cloud (fire and forget — public visibility is piece + time only)
     if (user) {
       recordSession({
         title: s.title,
@@ -110,21 +91,12 @@ const Index = () => {
 
   if (!profileLoaded) return <main className="min-h-screen" />;
 
-  if (!profile) {
+  if (!profile?.onboarding_complete) {
     return (
       <main className="min-h-screen">
-        <Onboarding
-          onComplete={(p) => {
-            saveProfile(p);
-            setProfile(p);
-            if (user) {
-              updateProfile(user.id, {
-                instrument: p.instrument,
-                genre: p.genre,
-                genre_label: p.genreLabel ?? null,
-              }).catch(() => {});
-            }
-          }}
+        <ProfileOnboarding
+          initial={profile ?? undefined}
+          onComplete={(p) => setProfile(p)}
         />
       </main>
     );
