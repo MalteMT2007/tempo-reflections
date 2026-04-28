@@ -348,6 +348,14 @@ export type Database = {
         Args: { _ensemble: string; _user: string }
         Returns: boolean
       }
+      is_score_owner: {
+        Args: { _score_id: string; _user: string }
+        Returns: boolean
+      }
+      score_shared_with_user: {
+        Args: { _score_id: string; _user: string }
+        Returns: boolean
+      }
     }
     Enums: {
       friendship_status: "pending" | "accepted"
