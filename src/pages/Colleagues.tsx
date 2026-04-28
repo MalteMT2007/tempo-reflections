@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Check, X, Plus, MoreHorizontal } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, Check, X, Plus, MoreHorizontal, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -223,6 +224,7 @@ function ProfileCard({
   profile: ColleagueProfile;
   onRemove: () => void;
 }) {
+  const navigate = useNavigate();
   return (
     <div className="group relative rounded-2xl border border-border p-5 flex flex-col items-center text-center bg-background hover:bg-muted/40 transition-colors">
       {/* Tinted halo behind avatar */}
@@ -265,11 +267,24 @@ function ProfileCard({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
+          <DropdownMenuItem onClick={() => navigate(`/messages/${profile.id}`)}>
+            Send message
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
             Remove colleague
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Quick message button */}
+      <button
+        onClick={() => navigate(`/messages/${profile.id}`)}
+        className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground spring-tap"
+        aria-label="Message"
+      >
+        <MessageCircle className="h-3.5 w-3.5" />
+        Message
+      </button>
     </div>
   );
 }
