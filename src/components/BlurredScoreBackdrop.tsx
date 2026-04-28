@@ -38,7 +38,7 @@ export function BlurredScoreBackdrop() {
         canvas.height = viewport.height;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
-        await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+        await page.render({ canvasContext: ctx, viewport } as any).promise;
         const blob: Blob | null = await new Promise((res) =>
           canvas.toBlob((b) => res(b), "image/jpeg", 0.7)
         );
