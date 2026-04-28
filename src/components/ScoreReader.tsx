@@ -122,10 +122,9 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
 
       const canvas = canvasRef.current!;
       const overlay = overlayRef.current!;
-      const draw = drawRef.current!;
       setCanvasSize(canvas);
       setCanvasSize(overlay);
-      setCanvasSize(draw);
+      setRenderSize({ w: viewport.width, h: viewport.height });
       setRenderSize({ w: viewport.width, h: viewport.height });
 
       const ctx = canvas.getContext("2d")!;
