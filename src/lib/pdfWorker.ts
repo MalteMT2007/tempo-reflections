@@ -1,12 +1,13 @@
-// PDF.js worker setup — use bundled worker via Vite's ?url import
-import { GlobalWorkerOptions } from "pdfjs-dist";
-// @ts-ignore - vite handles ?url for arbitrary assets
-import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+// PDF.js worker setup
+import { GlobalWorkerOptions, version as pdfjsVersion } from "pdfjs-dist";
 
 let configured = false;
 
 export function ensurePdfWorker() {
   if (configured) return;
-  GlobalWorkerOptions.workerSrc = workerSrc;
+  // Use CDN worker matching the installed pdfjs-dist version. Avoids Vite
+  // bundling issues that have caused "getOrInsertComputed is not a function"
+  // when worker/runtime versions drift.
+  GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.mjs`;
   configured = true;
 }
