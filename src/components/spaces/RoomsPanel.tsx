@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Plus, Search, Hash, Lock, Users, Loader2, ArrowLeft, MoreHorizontal, Send,
+  Plus, Search, Users2, Lock, Users, Loader2, ArrowLeft, MoreHorizontal, Send, Camera, Pencil,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Room, RoomMessage, ProfileLite,
   listMyRooms, searchPublicRooms, createRoom, joinPublicRoom, leaveRoom,
   listMessages, sendMessage, inviteUserToRoom, searchProfiles,
+  updateRoom, uploadRoomAvatar,
 } from "@/lib/social";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -114,12 +115,118 @@ function InviteDialog({ open, onClose, roomId, excludeIds }: any) {
   );
 }
 
+function EditRoomDialog({ open, onClose, room, onSaved }: {
+  open: boolean;
+  onClose: () => void;
+  room: Room;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(room.name);
+  const [description, setDescription] = useState(room.description ?? "");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(room.avatar_url);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setName(room.name);
+      setDescription(room.description ?? "");
+      setAvatarUrl(room.avatar_url);
+    }
+  }, [open, room]);
+
+  const onPick = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadRoomAvatar(room.id, file);
+      setAvatarUrl(url);
+    } catch (e: any) { toast.error(e.message ?? "Upload failed"); }
+    finally { setUploading(false); }
+  };
+
+  const submit = async () => {
+    if (!name.trim()) return;
+    setBusy(true);
+    try {
+      await updateRoom(room.id, {
+        name: name.trim(),
+        description: description.trim() || null,
+        avatar_url: avatarUrl,
+      });
+      toast.success("Room updated");
+      onSaved();
+      onClose();
+    } catch (e: any) { toast.error(e.message ?? "Could not save"); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="glass-strong border-white/15">
+        <DialogHeader><DialogTitle className="text-[20px]">Edit room</DialogTitle></DialogHeader>
+
+        <div className="flex flex-col items-center gap-3 py-2">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="relative h-24 w-24 rounded-full overflow-hidden glass grid place-items-center spring-tap group"
+            aria-label="Change room photo"
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <Users2 className="h-8 w-8 text-foreground/40" />
+            )}
+            <span className="absolute inset-0 grid place-items-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+              {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+            </span>
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); e.target.value = ""; }}
+          />
+          <p className="text-[12px] text-foreground/45">Tap to change photo</p>
+        </div>
+
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={80}
+          placeholder="Room name"
+          className="glass-input w-full h-12 px-4 rounded-2xl text-[15px]"
+        />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          maxLength={300}
+          placeholder="Biography — what's this group about?"
+          rows={4}
+          className="glass-input w-full px-4 py-3 rounded-2xl text-[14.5px] resize-none"
+        />
+        <div className="text-right text-[11px] text-foreground/35 -mt-2">{description.length}/300</div>
+
+        <button
+          onClick={submit} disabled={busy || !name.trim()}
+          className="h-11 rounded-full pill-primary text-[14px] font-semibold disabled:opacity-40"
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Save"}
+        </button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function RoomView({ room, onBack, onChanged }: { room: Room; onBack: () => void; onChanged: () => void }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<RoomMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState(""); const [sending, setSending] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -166,16 +273,29 @@ function RoomView({ room, onBack, onChanged }: { room: Room; onBack: () => void;
 
   return (
     <div className="h-full flex flex-col">
-      <header className="h-16 px-4 flex items-center gap-3 glass border-b-0">
-        <button onClick={onBack} className="h-9 w-9 grid place-items-center rounded-full hover:bg-white/[0.06] spring-tap md:hidden">
+      <header className="px-4 py-3 flex items-start gap-3 glass border-b-0">
+        <button onClick={onBack} className="h-9 w-9 grid place-items-center rounded-full hover:bg-white/[0.06] spring-tap md:hidden mt-0.5">
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <div className="h-10 w-10 rounded-2xl glass grid place-items-center">
-          {room.is_public ? <Hash className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+        <div className="h-12 w-12 rounded-full overflow-hidden glass grid place-items-center shrink-0">
+          {room.avatar_url ? (
+            <img src={room.avatar_url} alt={room.name} className="h-full w-full object-cover" />
+          ) : room.is_public ? (
+            <Users2 className="h-5 w-5" />
+          ) : (
+            <Lock className="h-4 w-4" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[15px] font-semibold truncate">{room.name}</div>
-          <div className="text-[12px] text-foreground/45">{room.member_count} {room.member_count === 1 ? "member" : "members"}</div>
+          <div className="flex items-center gap-1.5 text-[12.5px] text-foreground/55">
+            <Users className="h-3.5 w-3.5" />
+            <span className="font-medium">{room.member_count}</span>
+            <span>{room.member_count === 1 ? "member" : "members"}</span>
+          </div>
+          {room.description && (
+            <p className="text-[12.5px] text-foreground/55 mt-1 line-clamp-2">{room.description}</p>
+          )}
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -184,7 +304,14 @@ function RoomView({ room, onBack, onChanged }: { room: Room; onBack: () => void;
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="glass-strong border-white/15">
-            {room.is_admin && <DropdownMenuItem onClick={() => setInviteOpen(true)}>Invite people</DropdownMenuItem>}
+            {room.is_admin && (
+              <>
+                <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" /> Edit room
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setInviteOpen(true)}>Invite people</DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuItem onClick={onLeave} className="text-destructive focus:text-destructive">Leave room</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -237,6 +364,7 @@ function RoomView({ room, onBack, onChanged }: { room: Room; onBack: () => void;
       </div>
 
       <InviteDialog open={inviteOpen} onClose={() => setInviteOpen(false)} roomId={room.id} excludeIds={memberIds} />
+      <EditRoomDialog open={editOpen} onClose={() => setEditOpen(false)} room={room} onSaved={onChanged} />
     </div>
   );
 }
@@ -320,13 +448,23 @@ export default function RoomsPanel() {
                     active ? "bg-white/[0.10]" : "hover:bg-white/[0.06]"
                   }`}
                 >
-                  <div className="h-10 w-10 rounded-2xl glass grid place-items-center">
-                    {r.is_public ? <Hash className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                  <div className="h-11 w-11 rounded-full overflow-hidden glass grid place-items-center shrink-0">
+                    {r.avatar_url ? (
+                      <img src={r.avatar_url} alt={r.name} className="h-full w-full object-cover" />
+                    ) : r.is_public ? (
+                      <Users2 className="h-4 w-4" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[14.5px] font-medium truncate">{r.name}</div>
+                    {r.description && (
+                      <div className="text-[12px] text-foreground/45 truncate">{r.description}</div>
+                    )}
                   </div>
-                  <span className="text-[11px] text-foreground/45 px-2 py-0.5 rounded-full bg-white/[0.06]">
+                  <span className="inline-flex items-center gap-1 text-[11.5px] text-foreground/55 px-2 py-0.5 rounded-full bg-white/[0.06] shrink-0">
+                    <Users className="h-3 w-3" />
                     {r.member_count}
                   </span>
                 </button>

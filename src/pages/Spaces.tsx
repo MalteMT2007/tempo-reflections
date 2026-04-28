@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Hash, Plus } from "lucide-react";
+import { Users2, Plus } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import ColabrateFeed from "@/components/spaces/ColabrateFeed";
 import { useState } from "react";
@@ -55,8 +55,12 @@ export default function Spaces() {
                 onClick={() => navigate(`/spaces/rooms?id=${r.id}`)}
                 className="shrink-0 flex flex-col items-center gap-1.5 group"
               >
-                <div className="h-14 w-14 rounded-full bg-muted grid place-items-center spring-tap">
-                  <Hash className="h-5 w-5" strokeWidth={1.6} />
+                <div className="h-14 w-14 rounded-full bg-muted overflow-hidden grid place-items-center spring-tap">
+                  {r.avatar_url ? (
+                    <img src={r.avatar_url} alt={r.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <Users2 className="h-5 w-5" strokeWidth={1.6} />
+                  )}
                 </div>
                 <span className="text-[11px] text-foreground/80 max-w-[64px] truncate">{r.name}</span>
               </button>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Hash, Check, X, Inbox as InboxIcon, MessageCircle } from "lucide-react";
+import { Users, Users2, Check, X, Inbox as InboxIcon, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { listMyPendingInvites, acceptInvite, declineEnsembleInvite } from "@/lib/ensembles";
 import { listMyInvites, respondToInvite, type RoomInvite } from "@/lib/social";
@@ -130,7 +130,7 @@ export default function Inbox() {
           {roomInvites.map((inv) => (
             <div key={inv.id} className="glass rounded-3xl p-4 flex items-center gap-3">
               <div className="h-12 w-12 rounded-2xl glass grid place-items-center shrink-0">
-                <Hash className="h-5 w-5" />
+                <Users2 className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-medium truncate">{inv.room?.name ?? "Room"}</div>

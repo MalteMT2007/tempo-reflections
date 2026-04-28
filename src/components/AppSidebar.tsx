@@ -1,4 +1,4 @@
-import { Music2, Users, BookOpen, Hash, User as UserIcon, LogOut, UserPlus } from "lucide-react";
+import { Music2, Users, BookOpen, Users2, User as UserIcon, LogOut, UserPlus } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const items = [
   { title: "Library", url: "/library", icon: BookOpen },
   { title: "Ensemble", url: "/ensembles", icon: Users },
-  { title: "Spaces", url: "/spaces", icon: Hash },
+  { title: "Spaces", url: "/spaces", icon: Users2 },
   { title: "Colleagues", url: "/colleagues", icon: UserPlus },
   { title: "Profile", url: "/profile", icon: UserIcon },
 ];
