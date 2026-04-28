@@ -1,16 +1,15 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { Bell, Search, Menu as MenuIcon } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getProfile, DbProfile } from "@/lib/api";
-import { TopMenu } from "@/components/TopMenu";
+import { BottomDock } from "@/components/BottomDock";
 
 export default function AppLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [pending, setPending] = useState(0);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [profile, setProfile] = useState<DbProfile | null>(null);
 
   useEffect(() => {
@@ -82,21 +81,14 @@ export default function AppLayout() {
             <Search className="h-[19px] w-[19px] text-foreground" strokeWidth={1.8} />
           </button>
 
-          <button
-            onClick={() => setMenuOpen(true)}
-            aria-label="Menu"
-            className="h-9 w-9 grid place-items-center rounded-full hover:bg-muted spring-tap"
-          >
-            <MenuIcon className="h-[20px] w-[20px] text-foreground" strokeWidth={1.8} />
-          </button>
         </div>
       </header>
 
-      <main className="flex-1 min-w-0 animate-fade-in">
+      <main className="flex-1 min-w-0 animate-fade-in pb-28">
         <Outlet />
       </main>
 
-      <TopMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <BottomDock />
     </div>
   );
 }
