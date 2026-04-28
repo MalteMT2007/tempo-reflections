@@ -15,6 +15,7 @@ import InviteAccept from "./pages/InviteAccept.tsx";
 import Library from "./pages/Library.tsx";
 import Discover from "./pages/Discover.tsx";
 import Spaces from "./pages/Spaces.tsx";
+import SpacesRooms from "./pages/SpacesRooms.tsx";
 import Inbox from "./pages/Inbox.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/ensembles/:id" element={<EnsembleDetail />} />
               <Route path="/library" element={<Library />} />
               <Route path="/spaces" element={<Spaces />} />
+              <Route path="/spaces/rooms" element={<SpacesRooms />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/colleagues" element={<Colleagues />} />
