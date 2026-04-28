@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Inbox, Calendar, Mic2, Clock3, Flame, ChevronRight, Play, FileMusic, Library as LibraryIcon } from "lucide-react";
+import { Inbox, Calendar, Mic2, Clock3, Flame, ChevronRight, Play, FileMusic, Library as LibraryIcon, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyUpcomingEvents, MyUpcomingEvent } from "@/lib/ensembles";
@@ -223,29 +223,68 @@ const Home = () => {
             )}
 
             {/* Rehearsals pill */}
-            <GlassPill onClick={(e) => { e.stopPropagation(); nextRehearsal && navigate(`/ensembles/${nextRehearsal.ensemble_id}`); }}>
+            <GlassPill onClick={(e) => e.stopPropagation()}>
               <SectionHeader icon={Calendar} label="Upcoming rehearsals" count={rehearsals.length} />
-              <p className="mt-1.5 text-[16px] font-medium truncate">
-                {nextRehearsal ? fmtDate(nextRehearsal.starts_at) : "Nothing scheduled"}
-              </p>
-              {nextRehearsal && (
-                <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">
-                  {nextRehearsal.ensemble_name} · {fmtTime(nextRehearsal.starts_at)}
-                </p>
+              {nextRehearsal ? (
+                <button
+                  onClick={() => navigate(`/ensembles/${nextRehearsal.ensemble_id}`)}
+                  className="mt-1.5 w-full text-left spring-tap"
+                >
+                  <p className="text-[16px] font-medium truncate">{fmtDate(nextRehearsal.starts_at)}</p>
+                  <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">
+                    {nextRehearsal.ensemble_name} · {fmtTime(nextRehearsal.starts_at)}
+                  </p>
+                </button>
+              ) : (
+                <p className="mt-1.5 text-[14px] text-muted-foreground">Nothing scheduled</p>
               )}
+              <button
+                onClick={() => navigate("/ensembles")}
+                className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-full bg-foreground/10 hover:bg-foreground/15 text-foreground py-2 text-[12.5px] font-medium spring-tap transition-colors"
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                Browse rehearsals
+              </button>
             </GlassPill>
 
             {/* Concerts pill */}
-            <GlassPill onClick={(e) => { e.stopPropagation(); nextConcert && navigate(`/ensembles/${nextConcert.ensemble_id}`); }}>
+            <GlassPill onClick={(e) => e.stopPropagation()}>
               <SectionHeader icon={Mic2} label="Upcoming concerts" count={concerts.length} />
-              <p className="mt-1.5 text-[16px] font-medium truncate">
-                {nextConcert ? fmtDate(nextConcert.starts_at) : "Nothing scheduled"}
-              </p>
-              {nextConcert && (
-                <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">
-                  {nextConcert.ensemble_name} · {fmtTime(nextConcert.starts_at)}
-                </p>
+              {nextConcert ? (
+                <button
+                  onClick={() => navigate(`/ensembles/${nextConcert.ensemble_id}`)}
+                  className="mt-1.5 w-full text-left spring-tap"
+                >
+                  <p className="text-[16px] font-medium truncate">{fmtDate(nextConcert.starts_at)}</p>
+                  <p className="text-[12.5px] text-muted-foreground truncate mt-0.5">
+                    {nextConcert.ensemble_name} · {fmtTime(nextConcert.starts_at)}
+                  </p>
+                </button>
+              ) : (
+                <p className="mt-1.5 text-[14px] text-muted-foreground">Nothing scheduled</p>
               )}
+              <button
+                onClick={() => navigate("/ensembles")}
+                className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-full bg-foreground/10 hover:bg-foreground/15 text-foreground py-2 text-[12.5px] font-medium spring-tap transition-colors"
+              >
+                <Mic2 className="h-3.5 w-3.5" />
+                Browse concerts
+              </button>
+            </GlassPill>
+
+            {/* Ensembles pill */}
+            <GlassPill onClick={(e) => e.stopPropagation()}>
+              <SectionHeader icon={Users} label="Your ensembles" />
+              <p className="mt-1.5 text-[13.5px] text-muted-foreground">
+                Rehearse, share scores, and stay in sync with your groups.
+              </p>
+              <button
+                onClick={() => navigate("/ensembles")}
+                className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-full bg-foreground/10 hover:bg-foreground/15 text-foreground py-2 text-[12.5px] font-medium spring-tap transition-colors"
+              >
+                <Users className="h-3.5 w-3.5" />
+                Browse ensembles
+              </button>
             </GlassPill>
 
             {/* Practice pill */}
