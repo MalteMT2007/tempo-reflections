@@ -106,37 +106,39 @@ const Ensembles = () => {
           <ul className="space-y-3">
             {ensembles.map((e) => (
               <li key={e.id} className="rounded-lg border border-border bg-card/40 p-5">
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="min-w-0">
-                    <p className="font-serif text-xl text-ink leading-tight">{e.name}</p>
-                    {e.description && <p className="font-serif italic text-sm text-ink-soft mt-1">{e.description}</p>}
+                <Link to={`/ensembles/${e.id}`} className="block">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="min-w-0">
+                      <p className="font-serif text-xl text-ink leading-tight">{e.name}</p>
+                      {e.description && <p className="font-serif italic text-sm text-ink-soft mt-1">{e.description}</p>}
+                    </div>
                   </div>
-                  {e.created_by !== user?.id && (
-                    <button
-                      onClick={async () => { await leaveEnsemble(e.id); refresh(); }}
-                      className="text-[10px] uppercase tracking-wider text-ink-soft hover:text-ink"
-                    >
-                      Leave
-                    </button>
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-3">
+                    <Users className="h-3 w-3" />
+                    <span>{(members[e.id]?.length ?? 0)} member{(members[e.id]?.length ?? 0) === 1 ? "" : "s"}</span>
+                  </div>
+                  {members[e.id] && members[e.id].length > 0 && (
+                    <ul className="mt-3 flex flex-wrap gap-1.5">
+                      {members[e.id].map((m) => (
+                        <li key={m.user_id} className="text-xs px-2.5 py-1 rounded-full border border-border text-ink-soft">
+                          {m.profiles?.display_name || m.profiles?.username || "Member"}
+                          {m.profiles?.instrument && <span className="text-muted-foreground"> · {m.profiles.instrument}</span>}
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </div>
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-3">
-                  <Users className="h-3 w-3" />
-                  <span>{(members[e.id]?.length ?? 0)} member{(members[e.id]?.length ?? 0) === 1 ? "" : "s"}</span>
-                </div>
-                {members[e.id] && members[e.id].length > 0 && (
-                  <ul className="mt-3 flex flex-wrap gap-1.5">
-                    {members[e.id].map((m) => (
-                      <li key={m.user_id} className="text-xs px-2.5 py-1 rounded-full border border-border text-ink-soft">
-                        {m.profiles?.display_name || m.profiles?.username || "Member"}
-                        {m.profiles?.instrument && <span className="text-muted-foreground"> · {m.profiles.instrument}</span>}
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-4 font-serif italic normal-case">
+                    Open ensemble →
+                  </p>
+                </Link>
+                {e.created_by !== user?.id && (
+                  <button
+                    onClick={async () => { await leaveEnsemble(e.id); refresh(); }}
+                    className="text-[10px] uppercase tracking-wider text-ink-soft hover:text-ink mt-3"
+                  >
+                    Leave
+                  </button>
                 )}
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-4 font-serif italic normal-case">
-                  Shared scores & rehearsal calendar — coming soon
-                </p>
               </li>
             ))}
           </ul>
