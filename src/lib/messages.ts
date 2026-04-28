@@ -107,6 +107,63 @@ export async function countUnreadDMs(): Promise<number> {
   return count ?? 0;
 }
 
+export type ReadConversation = {
+  other_id: string;
+  last_message: string;
+  last_at: string;
+  last_from_me: boolean;
+  profile?: { username: string; display_name: string | null; avatar_url: string | null } | null;
+};
+
+export async function listRecentReadConversations(days = 30): Promise<ReadConversation[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("direct_messages")
+    .select("sender_id, recipient_id, content, created_at, read_at")
+    .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  const rows = (data ?? []) as { sender_id: string; recipient_id: string; content: string; created_at: string; read_at: string | null }[];
+  if (!rows.length) return [];
+
+  // Track which conversations have ANY unread incoming messages — those belong in the Unread section, not history.
+  const hasUnread = new Set<string>();
+  for (const r of rows) {
+    if (r.recipient_id === user.id && r.read_at === null) {
+      hasUnread.add(r.sender_id);
+    }
+  }
+
+  const byOther = new Map<string, ReadConversation>();
+  for (const r of rows) {
+    const other = r.sender_id === user.id ? r.recipient_id : r.sender_id;
+    if (hasUnread.has(other)) continue;
+    if (byOther.has(other)) continue; // first row is most recent due to order desc
+    byOther.set(other, {
+      other_id: other,
+      last_message: r.content,
+      last_at: r.created_at,
+      last_from_me: r.sender_id === user.id,
+    });
+  }
+  if (!byOther.size) return [];
+
+  const ids = Array.from(byOther.keys());
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, username, display_name, avatar_url")
+    .in("id", ids);
+  for (const p of (profiles ?? []) as any[]) {
+    const c = byOther.get(p.id);
+    if (c) c.profile = { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url };
+  }
+  return Array.from(byOther.values()).sort((a, b) => b.last_at.localeCompare(a.last_at));
+}
+
 export function subscribeToConversation(
   otherId: string,
   onMessage: (m: DirectMessage) => void
