@@ -255,6 +255,114 @@ export type Database = {
         }
         Relationships: []
       }
+      post_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reposts: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reposts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       practice_sessions: {
         Row: {
           byline: string | null
@@ -447,6 +555,138 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      room_invites: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string
+          invitee_id: string
+          responded_at: string | null
+          room_id: string
+          status: Database["public"]["Enums"]["room_invite_status"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by: string
+          invitee_id: string
+          responded_at?: string | null
+          room_id: string
+          status?: Database["public"]["Enums"]["room_invite_status"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string
+          invitee_id?: string
+          responded_at?: string | null
+          room_id?: string
+          status?: Database["public"]["Enums"]["room_invite_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_invites_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_members: {
+        Row: {
+          joined_at: string
+          role: Database["public"]["Enums"]["room_role"]
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          role?: Database["public"]["Enums"]["room_role"]
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          role?: Database["public"]["Enums"]["room_role"]
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_messages: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          room_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          room_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rooms: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_public: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       score_annotations: {
         Row: {
@@ -648,12 +888,24 @@ export type Database = {
         Args: { _project: string; _user: string }
         Returns: boolean
       }
+      is_room_admin: {
+        Args: { _room: string; _user: string }
+        Returns: boolean
+      }
+      is_room_member: {
+        Args: { _room: string; _user: string }
+        Returns: boolean
+      }
       is_score_owner: {
         Args: { _score_id: string; _user: string }
         Returns: boolean
       }
       score_shared_with_user: {
         Args: { _score_id: string; _user: string }
+        Returns: boolean
+      }
+      user_has_room_invite: {
+        Args: { _room: string; _user: string }
         Returns: boolean
       }
       username_available: { Args: { _name: string }; Returns: boolean }
@@ -665,6 +917,8 @@ export type Database = {
       friendship_status: "pending" | "accepted"
       invite_status: "pending" | "accepted" | "revoked"
       project_status: "planning" | "rehearsing" | "completed"
+      room_invite_status: "pending" | "accepted" | "declined"
+      room_role: "admin" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -798,6 +1052,8 @@ export const Constants = {
       friendship_status: ["pending", "accepted"],
       invite_status: ["pending", "accepted", "revoked"],
       project_status: ["planning", "rehearsing", "completed"],
+      room_invite_status: ["pending", "accepted", "declined"],
+      room_role: ["admin", "member"],
     },
   },
 } as const
