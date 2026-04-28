@@ -79,13 +79,6 @@ const Library = () => {
     try {
       const list = await listMyScores();
       setScores(list);
-      // Restore last opened score (only on first load when no score is currently open)
-      const savedId = typeof localStorage !== "undefined" ? localStorage.getItem(OPEN_SCORE_KEY) : null;
-      if (savedId && !openScore) {
-        const match = list.find((s) => s.id === savedId);
-        if (match) setOpenScore(match);
-        else localStorage.removeItem(OPEN_SCORE_KEY);
-      }
     } catch (e: any) {
       setError(e?.message || "Couldn't load your library.");
     } finally {
@@ -104,21 +97,11 @@ const Library = () => {
     if (!id || scores.length === 0) return;
     const match = scores.find((s) => s.id === id);
     if (match) {
-      setOpenScore(match);
+      openInReader(match);
       searchParams.delete("open");
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, scores, setSearchParams]);
-
-  // Persist the currently open score so it reopens on next visit
-  useEffect(() => {
-    if (openScore) {
-      localStorage.setItem(OPEN_SCORE_KEY, openScore.id);
-      markScoreOpened(openScore.id);
-    } else {
-      localStorage.removeItem(OPEN_SCORE_KEY);
-    }
-  }, [openScore]);
 
   const sorted = useMemo(() => {
     const arr = [...scores];
@@ -138,11 +121,8 @@ const Library = () => {
   }, [scores, sort]);
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] pb-24">
-      <div
-        className="max-w-md mx-auto px-5 sm:px-6"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 80px)" }}
-      >
+    <>
+      <GlassPill>
         <PageHeader
           title="Library"
           trailing={
@@ -159,15 +139,13 @@ const Library = () => {
           }
         />
 
-        {/* Sort */}
-        <div className="mt-6 mb-4 flex items-center justify-between">
+        <div className="mt-4 mb-3 flex items-center justify-between">
           <p className="text-[12.5px] text-muted-foreground">
             {scores.length} {scores.length === 1 ? "score" : "scores"}
           </p>
           <SortMenu sort={sort} onChange={setSort} />
         </div>
 
-        {/* Content */}
         {loading ? (
           view === "grid" ? <LoadingGrid /> : <LoadingList />
         ) : error ? (
@@ -175,29 +153,29 @@ const Library = () => {
         ) : sorted.length === 0 ? (
           <EmptyState empty onAdd={() => setUploadOpen(true)} />
         ) : view === "grid" ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-6">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-4">
             {sorted.map((s) => (
               <ScoreCardGrid
                 key={s.id}
                 score={s}
-                onOpen={() => setOpenScore(s)}
+                onOpen={() => openInReader(s)}
                 onChanged={refresh}
               />
             ))}
           </div>
         ) : (
-          <ul className="divide-y divide-border rounded-2xl border border-border overflow-hidden">
+          <ul className="divide-y divide-border/50 rounded-2xl border border-border/50 overflow-hidden">
             {sorted.map((s) => (
               <ScoreRow
                 key={s.id}
                 score={s}
-                onOpen={() => setOpenScore(s)}
+                onOpen={() => openInReader(s)}
                 onChanged={refresh}
               />
             ))}
           </ul>
         )}
-      </div>
+      </GlassPill>
 
       {uploadOpen && (
         <UploadDialog
@@ -208,11 +186,7 @@ const Library = () => {
           onUploaded={() => { setUploadOpen(false); refresh(); }}
         />
       )}
-
-      {openScore && (
-        <ScoreReader score={openScore} onClose={() => setOpenScore(null)} />
-      )}
-    </div>
+    </>
   );
 };
 
