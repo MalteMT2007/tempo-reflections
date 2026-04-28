@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Square, BookOpen, Users } from "lucide-react";
+import { Square, BookOpen, Users, FileMusic } from "lucide-react";
 import { Metronome } from "./Metronome";
 import { Notebook } from "./Notebook";
+import { ScoreReader } from "./ScoreReader";
+import { listMyScores, type Score } from "@/lib/scores";
 import { formatDuration, loadNotebook } from "@/lib/storage";
 
 type Props = {
@@ -17,6 +19,9 @@ type Props = {
 export const PracticeMode = ({ title, byline, focus, tags, goal, startedAt, onEnd }: Props) => {
   const [elapsed, setElapsed] = useState(0);
   const [notebookOpen, setNotebookOpen] = useState(false);
+  const [scoresOpen, setScoresOpen] = useState(false);
+  const [openScore, setOpenScore] = useState<Score | null>(null);
+  const [scores, setScores] = useState<Score[]>([]);
   const [noteCount, setNoteCount] = useState(0);
   const tickRef = useRef<number | null>(null);
 
@@ -96,16 +101,17 @@ export const PracticeMode = ({ title, byline, focus, tags, goal, startedAt, onEn
           </button>
 
           <button
-            disabled
-            title="Coming soon"
-            className="rounded-lg border border-dashed border-border bg-card/30 p-4 text-left opacity-60 cursor-not-allowed"
+            onClick={async () => {
+              setScoresOpen(true);
+              try { setScores(await listMyScores()); } catch {}
+            }}
+            className="rounded-lg border border-border bg-card/60 backdrop-blur-sm p-4 shadow-soft text-left hover:border-ink/40 transition"
           >
             <div className="flex items-center justify-between mb-1">
-              <Users className="h-4 w-4 text-ink-soft" />
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Soon</span>
+              <FileMusic className="h-4 w-4 text-ink-soft" />
             </div>
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Community</p>
-            <p className="font-serif text-sm text-ink mt-1">Notes from others</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Sheet music</p>
+            <p className="font-serif text-sm text-ink mt-1">Open & annotate a score</p>
           </button>
         </div>
 
