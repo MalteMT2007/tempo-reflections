@@ -261,6 +261,10 @@ const ScoreActionsMenu = ({
   onChanged: () => void;
   className?: string;
 }) => {
+  const { user } = useAuth();
+  const isOwner = !!user && user.id === score.owner_id;
+  const [shareOpen, setShareOpen] = useState(false);
+
   const toggleFav = async (e: Event) => {
     e.preventDefault();
     try {
@@ -277,29 +281,58 @@ const ScoreActionsMenu = ({
     } catch {}
   };
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          onClick={(e) => e.stopPropagation()}
-          aria-label="More actions"
-          className={`h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-muted-foreground hover:text-foreground spring-tap ${className}`}
-        >
-          <MoreHorizontal className="h-4 w-4" strokeWidth={2} />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
-        <DropdownMenuItem onSelect={toggleFav}>
-          <Star className={`h-4 w-4 mr-2 ${score.favorite ? "fill-current" : ""}`} />
-          {score.favorite ? "Remove favorite" : "Favorite"}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={remove} className="text-destructive focus:text-destructive">
-          <Trash2 className="h-4 w-4 mr-2" />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            onClick={(e) => e.stopPropagation()}
+            aria-label="More actions"
+            className={`h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-muted-foreground hover:text-foreground spring-tap ${className}`}
+          >
+            <MoreHorizontal className="h-4 w-4" strokeWidth={2} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
+          {isOwner && (
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setShareOpen(true);
+              }}
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share with ensemble…
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onSelect={toggleFav}>
+            <Star className={`h-4 w-4 mr-2 ${score.favorite ? "fill-current" : ""}`} />
+            {score.favorite ? "Remove favorite" : "Favorite"}
+          </DropdownMenuItem>
+          {isOwner && (
+            <DropdownMenuItem onSelect={remove} className="text-destructive focus:text-destructive">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {shareOpen && (
+        <ShareScoreDialog score={score} onClose={() => { setShareOpen(false); onChanged(); }} />
+      )}
+    </>
   );
 };
+
+// ---------- Shared badge ----------
+const SharedBadge = ({ className = "" }: { className?: string }) => (
+  <span
+    className={`inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium px-1.5 py-0.5 ${className}`}
+    title="Shared with you"
+  >
+    <Users className="h-2.5 w-2.5" strokeWidth={2.5} />
+    Shared
+  </span>
+);
 
 // ---------- Compact grid card ----------
 const ScoreCardGrid = ({
