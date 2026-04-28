@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getDocument, type PDFDocumentProxy, type PDFPageProxy } from "pdfjs-dist";
 import {
+  Music2,
+  BookOpen,
+  Menu,
+  Cloud,
+  LayoutGrid,
+  ChevronDown,
+  PenLine,
+  Search,
+  Triangle,
+  Briefcase,
   X,
   Pencil,
   Type as TypeIcon,
   Eraser,
   Undo2,
   Redo2,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Hand,
 } from "lucide-react";
 import { ensurePdfWorker } from "@/lib/pdfWorker";
 import {
@@ -39,7 +44,6 @@ type Props = {
   onClose: () => void;
 };
 
-// stable color from user_id
 const userColor = (id: string) => {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
@@ -50,27 +54,29 @@ const userColor = (id: string) => {
 export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null); // PDF page
-  const overlayRef = useRef<HTMLCanvasElement>(null); // existing annotations rendered
-  const drawRef = useRef<HTMLCanvasElement>(null); // active stroke
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+  const drawRef = useRef<HTMLCanvasElement>(null);
   const pdfRef = useRef<PDFDocumentProxy | null>(null);
   const pageRef = useRef<PDFPageProxy | null>(null);
   const renderTaskRef = useRef<any>(null);
 
-  const [pageIndex, setPageIndex] = useState(0); // 0-based
+  const [pageIndex, setPageIndex] = useState(0);
   const [pageCount, setPageCount] = useState(0);
   const [scale, setScale] = useState(1);
   const [renderSize, setRenderSize] = useState({ w: 0, h: 0 });
-  const [tool, setTool] = useState<Tool>("draw");
+  const [tool, setTool] = useState<Tool>("pan");
   const [color, setColor] = useState(COLORS[0]);
   const [width, setWidth] = useState(WIDTHS[1]);
   const [showOthers, setShowOthers] = useState(true);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [undoStack, setUndoStack] = useState<string[]>([]); // annotation ids (own) to allow undo
-  const [redoStack, setRedoStack] = useState<Annotation[]>([]); // re-creatable
-  const [toolbarOpen, setToolbarOpen] = useState(true);
+  const [undoStack, setUndoStack] = useState<string[]>([]);
+  const [redoStack, setRedoStack] = useState<Annotation[]>([]);
 
-  // Signal globally that the reader is open (used by AppLayout to swap dock <-> hamburger)
+  // ForScore-style: chrome auto-shows; tap toggles. Annotate panel only when in draw/text/erase.
+  const [chromeVisible, setChromeVisible] = useState(true);
+  const [annotateOpen, setAnnotateOpen] = useState(false);
+
   useEffect(() => {
     document.body.setAttribute("data-reader-open", "true");
     window.dispatchEvent(new Event("reader-open-change"));
@@ -101,7 +107,6 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     };
   }, [score.id, score.file_path]);
 
-  // Load annotations
   useEffect(() => {
     listAnnotations(score.id).then(setAnnotations).catch(() => {});
   }, [score.id]);
@@ -117,8 +122,12 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       pageRef.current = page;
       const container = containerRef.current;
       const containerW = container?.clientWidth ?? 800;
+      const containerH = container?.clientHeight ?? 800;
       const baseViewport = page.getViewport({ scale: 1 });
-      const fitScale = (containerW - 32) / baseViewport.width;
+      // Fit page to container (height-priority for ForScore feel)
+      const fitW = (containerW - 32) / baseViewport.width;
+      const fitH = (containerH - 32) / baseViewport.height;
+      const fitScale = Math.min(fitW, fitH);
       const finalScale = fitScale * scale;
       const viewport = page.getViewport({ scale: finalScale });
       const dpr = window.devicePixelRatio || 1;
@@ -140,12 +149,12 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       try { renderTaskRef.current?.cancel?.(); } catch {}
       renderTaskRef.current = page.render({ canvasContext: ctx, viewport });
-      try { await renderTaskRef.current.promise; } catch { /* render canceled */ }
+      try { await renderTaskRef.current.promise; } catch {}
     })();
     return () => { cancelled = true; };
   }, [pageIndex, scale, pageCount]);
 
-  // Re-draw overlay whenever annotations / page / size / visibility change
+  // Re-draw overlay
   useEffect(() => {
     const overlay = overlayRef.current;
     if (!overlay) return;
@@ -187,7 +196,6 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     }
   }, [annotations, pageIndex, renderSize, showOthers, user?.id]);
 
-  // Pointer handlers for non-draw tools (text/erase). Draw uses DrawingCanvas.
   const getRelative = (e: React.PointerEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
@@ -240,11 +248,8 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
 
   const handleStrokeComplete = async (s: CompletedStroke) => {
     if (s.points.length < 2 || renderSize.w === 0) return;
-    // Convert filtered (px) points to normalized 0..1 for storage.
     const pts = s.points.map((p) => ({ x: p.x / renderSize.w, y: p.y / renderSize.h }));
-    // Average engine width * scale -> stored width.
-    const avgW =
-      s.segments.reduce((a, seg) => a + seg.width, 0) / Math.max(1, s.segments.length);
+    const avgW = s.segments.reduce((a, seg) => a + seg.width, 0) / Math.max(1, s.segments.length);
     const data: StrokeData = {
       points: pts,
       color: s.color,
@@ -261,7 +266,6 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     setUndoStack((st) => [...st, ann.id]);
     setRedoStack([]);
   };
-
 
   const undo = async () => {
     const last = undoStack[undoStack.length - 1];
@@ -288,36 +292,19 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     setUndoStack((s) => [...s, created.id]);
   };
 
-  const [flipDir, setFlipDir] = useState<"next" | "prev" | null>(null);
-  const flipTimerRef = useRef<number | null>(null);
-  const triggerFlip = (dir: "next" | "prev") => {
-    setFlipDir(dir);
-    if (flipTimerRef.current) window.clearTimeout(flipTimerRef.current);
-    flipTimerRef.current = window.setTimeout(() => setFlipDir(null), 220);
-  };
-  const goPrev = () => {
-    setPageIndex((p) => {
-      if (p <= 0) return p;
-      triggerFlip("prev");
-      return p - 1;
-    });
-  };
-  const goNext = () => {
-    setPageIndex((p) => {
-      if (p >= pageCount - 1) return p;
-      triggerFlip("next");
-      return p + 1;
-    });
-  };
+  const goPrev = () => setPageIndex((p) => Math.max(0, p - 1));
+  const goNext = () => setPageIndex((p) => Math.min(pageCount - 1, p + 1));
 
-  // Tap-zone handler: only fires for finger taps (pen/mouse handled by drawing layer).
-  const handleZoneTap = (dir: "next" | "prev") => (e: React.PointerEvent) => {
-    if (e.pointerType === "pen") return; // never steal pencil input
+  // Center tap toggles chrome; edge taps navigate (finger only — pencil draws)
+  const handleZoneTap = (zone: "prev" | "center" | "next") => (e: React.PointerEvent) => {
+    if (e.pointerType === "pen") return;
+    if (tool === "draw" || tool === "text" || tool === "erase") return;
     e.preventDefault();
-    if (dir === "next") goNext(); else goPrev();
+    if (zone === "prev") goPrev();
+    else if (zone === "next") goNext();
+    else setChromeVisible((v) => !v);
   };
 
-  // Keyboard shortcuts
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -330,66 +317,36 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [undoStack, redoStack, annotations, pageCount]);
 
-  const presence = useMemo(() => {
-    const set = new Map<string, string>();
-    annotations.forEach((a) => set.set(a.user_id, userColor(a.user_id)));
-    return Array.from(set.entries());
-  }, [annotations]);
+  const titleLabel = useMemo(() => {
+    const composer = score.composer ? `${score.composer}` : "";
+    const total = pageCount || score.page_count || 0;
+    const pageText = total ? `, sid. ${pageIndex + 1} av ${total}` : "";
+    return `${score.title}${composer ? ` – ${composer}` : ""}${pageText}`;
+  }, [score.title, score.composer, score.page_count, pageIndex, pageCount]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-background paper-grain flex flex-col animate-fade-in">
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/70 backdrop-blur">
-        <button
-          onClick={onClose}
-          className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:border-ink/40"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4 text-ink" />
-        </button>
-        <div className="text-center min-w-0 px-3">
-          <p className="font-serif text-sm text-ink truncate">{score.title}</p>
-          {score.composer && <p className="font-serif italic text-[11px] text-ink-soft truncate">{score.composer}</p>}
-        </div>
-        <div className="flex items-center gap-2">
-          {presence.slice(0, 3).map(([id, c]) => (
-            <span
-              key={id}
-              className="h-6 w-6 rounded-full border border-paper text-[10px] font-medium flex items-center justify-center text-paper"
-              style={{ background: c }}
-              title={id === user?.id ? "You" : "Collaborator"}
-            >
-              {id === user?.id ? "Y" : "·"}
-            </span>
-          ))}
-          <button
-            onClick={() => setShowOthers((v) => !v)}
-            className="h-9 w-9 rounded-full border border-border flex items-center justify-center hover:border-ink/40"
-            aria-label="Toggle others' annotations"
-            title={showOthers ? "Hide collaborators" : "Show collaborators"}
-          >
-            {showOthers ? <Eye className="h-4 w-4 text-ink" /> : <EyeOff className="h-4 w-4 text-ink-soft" />}
-          </button>
-        </div>
-      </header>
-
+    <div className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in select-none">
       {/* Canvas area */}
-      <div ref={containerRef} className="flex-1 overflow-auto flex items-start justify-center py-4 relative">
+      <div ref={containerRef} className="flex-1 overflow-hidden flex items-center justify-center relative">
         <div
-          className={`relative shadow-elev bg-paper ${
-            flipDir === "next" ? "animate-page-next" : flipDir === "prev" ? "animate-page-prev" : ""
-          }`}
+          className="relative shadow-elev bg-paper"
           style={{ width: renderSize.w || undefined, height: renderSize.h || undefined }}
         >
           <canvas ref={canvasRef} className="block" />
           <canvas ref={overlayRef} className="absolute inset-0 pointer-events-none" />
 
-          {/* Tap zones — finger only. Sit beneath drawing/aux layer so pencil keeps drawing. */}
+          {/* Tap zones (finger only) */}
           <div
             className="absolute inset-y-0 left-0 w-1/4 z-10"
             style={{ touchAction: "manipulation" }}
             onPointerDown={handleZoneTap("prev")}
             aria-label="Previous page"
+          />
+          <div
+            className="absolute inset-y-0 left-1/4 w-1/2 z-10"
+            style={{ touchAction: "manipulation" }}
+            onPointerDown={handleZoneTap("center")}
+            aria-label="Toggle controls"
           />
           <div
             className="absolute inset-y-0 right-0 w-1/4 z-10"
@@ -420,88 +377,113 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
             />
           )}
         </div>
+      </div>
 
-        {/* Minimal floating page counter */}
-        {pageCount > 0 && (
-          <div className="pointer-events-none fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
-            <div className="rounded-full bg-ink/55 text-paper text-[11px] tabular px-3 py-1 backdrop-blur-sm">
-              {pageIndex + 1} / {pageCount}
+      {/* === ForScore-style floating top toolbar (3 glass pills) === */}
+      <div
+        className={`pointer-events-none fixed top-0 inset-x-0 z-40 px-3 pt-3 transition-all duration-300 ${
+          chromeVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-3"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2 max-w-[1400px] mx-auto">
+          {/* Left pill */}
+          <GlassPill>
+            <PillBtn label="Library" onClick={onClose}><Music2 className="h-[18px] w-[18px]" /></PillBtn>
+            <PillBtn label="Bookmarks"><BookOpen className="h-[18px] w-[18px]" /></PillBtn>
+            <PillBtn label="Menu"><Menu className="h-[18px] w-[18px]" /></PillBtn>
+            <PillBtn label="Cloud"><Cloud className="h-[18px] w-[18px]" /></PillBtn>
+          </GlassPill>
+
+          {/* Center title pill */}
+          <GlassPill className="flex-1 max-w-[640px] min-w-0">
+            <PillBtn label="Pages"><LayoutGrid className="h-[18px] w-[18px]" /></PillBtn>
+            <div className="flex-1 min-w-0 px-2 text-center">
+              <p className="text-[13px] text-ink truncate">{titleLabel}</p>
             </div>
-          </div>
-        )}
-      </div>
+            <PillBtn label="More"><ChevronDown className="h-[18px] w-[18px]" /></PillBtn>
+          </GlassPill>
 
-      {/* Page nav */}
-      <div className="flex items-center justify-center gap-4 py-2 border-t border-border bg-card/60">
-        <button onClick={goPrev} disabled={pageIndex === 0} className="h-9 w-9 rounded-full border border-border flex items-center justify-center disabled:opacity-30">
-          <ChevronLeft className="h-4 w-4 text-ink" />
-        </button>
-        <span className="text-xs text-ink-soft tabular">
-          {pageCount > 0 ? `${pageIndex + 1} / ${pageCount}` : "…"}
-        </span>
-        <button onClick={goNext} disabled={pageIndex >= pageCount - 1} className="h-9 w-9 rounded-full border border-border flex items-center justify-center disabled:opacity-30">
-          <ChevronRight className="h-4 w-4 text-ink" />
-        </button>
-        <div className="w-px h-5 bg-border mx-2" />
-        <button onClick={() => setScale((s) => Math.max(0.5, s - 0.1))} className="text-xs text-ink-soft px-2">−</button>
-        <span className="text-[11px] text-muted-foreground tabular">{Math.round(scale * 100)}%</span>
-        <button onClick={() => setScale((s) => Math.min(3, s + 0.1))} className="text-xs text-ink-soft px-2">+</button>
-      </div>
-
-      {/* Toolbar (collapsible, floating bottom) */}
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50">
-        {toolbarOpen ? (
-          <div className="rounded-full bg-ink text-paper shadow-elev flex items-center gap-1 px-2 py-1.5 animate-fade-in">
-            <ToolBtn active={tool === "pan"} onClick={() => setTool("pan")} label="Pan"><Hand className="h-4 w-4" /></ToolBtn>
-            <ToolBtn active={tool === "draw"} onClick={() => setTool("draw")} label="Draw"><Pencil className="h-4 w-4" /></ToolBtn>
-            <ToolBtn active={tool === "text"} onClick={() => setTool("text")} label="Text"><TypeIcon className="h-4 w-4" /></ToolBtn>
-            <ToolBtn active={tool === "erase"} onClick={() => setTool("erase")} label="Erase"><Eraser className="h-4 w-4" /></ToolBtn>
-            <div className="w-px h-5 bg-paper/20 mx-1" />
-            {COLORS.map((c) => (
-              <button
-                key={c}
-                onClick={() => setColor(c)}
-                className={`h-5 w-5 rounded-full border transition ${color === c ? "border-paper scale-110" : "border-paper/30"}`}
-                style={{ background: c }}
-                aria-label={`Color ${c}`}
-              />
-            ))}
-            <div className="w-px h-5 bg-paper/20 mx-1" />
-            {WIDTHS.map((w) => (
-              <button
-                key={w}
-                onClick={() => setWidth(w)}
-                className={`h-7 w-7 rounded-full flex items-center justify-center transition ${width === w ? "bg-paper/20" : ""}`}
-                aria-label={`Width ${w}`}
-              >
-                <span className="rounded-full bg-paper" style={{ width: w + 2, height: w + 2 }} />
-              </button>
-            ))}
-            <div className="w-px h-5 bg-paper/20 mx-1" />
-            <ToolBtn onClick={undo} label="Undo" disabled={undoStack.length === 0}><Undo2 className="h-4 w-4" /></ToolBtn>
-            <ToolBtn onClick={redo} label="Redo" disabled={redoStack.length === 0}><Redo2 className="h-4 w-4" /></ToolBtn>
-            <button
-              onClick={() => setToolbarOpen(false)}
-              className="ml-1 h-7 w-7 rounded-full hover:bg-paper/10 flex items-center justify-center"
-              aria-label="Hide toolbar"
+          {/* Right pill */}
+          <GlassPill>
+            <PillBtn
+              label="Annotate"
+              active={annotateOpen}
+              onClick={() => {
+                const next = !annotateOpen;
+                setAnnotateOpen(next);
+                setTool(next ? "draw" : "pan");
+              }}
             >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setToolbarOpen(true)}
-            className="rounded-full bg-ink text-paper px-4 py-2 shadow-elev text-xs uppercase tracking-wider"
-          >
-            Tools
-          </button>
-        )}
+              <PenLine className="h-[18px] w-[18px]" />
+            </PillBtn>
+            <PillBtn label="Search"><Search className="h-[18px] w-[18px]" /></PillBtn>
+            <PillBtn label="Metronome"><Triangle className="h-[18px] w-[18px]" /></PillBtn>
+            <PillBtn label="Setlist"><Briefcase className="h-[18px] w-[18px]" /></PillBtn>
+          </GlassPill>
+        </div>
       </div>
+
+      {/* Annotate sub-toolbar (only when active) */}
+      {annotateOpen && (
+        <div
+          className={`pointer-events-none fixed bottom-6 inset-x-0 z-40 px-3 transition-all duration-300 ${
+            chromeVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+          }`}
+        >
+          <div className="flex justify-center">
+            <GlassPill>
+              <PillBtn active={tool === "draw"} onClick={() => setTool("draw")} label="Draw"><Pencil className="h-[18px] w-[18px]" /></PillBtn>
+              <PillBtn active={tool === "text"} onClick={() => setTool("text")} label="Text"><TypeIcon className="h-[18px] w-[18px]" /></PillBtn>
+              <PillBtn active={tool === "erase"} onClick={() => setTool("erase")} label="Erase"><Eraser className="h-[18px] w-[18px]" /></PillBtn>
+              <Divider />
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setColor(c)}
+                  className={`pointer-events-auto h-5 w-5 rounded-full border transition ${color === c ? "border-ink scale-110" : "border-ink/20"}`}
+                  style={{ background: c }}
+                  aria-label={`Color ${c}`}
+                />
+              ))}
+              <Divider />
+              {WIDTHS.map((w) => (
+                <button
+                  key={w}
+                  onClick={() => setWidth(w)}
+                  className={`pointer-events-auto h-7 w-7 rounded-full flex items-center justify-center transition ${width === w ? "bg-ink/10" : ""}`}
+                  aria-label={`Width ${w}`}
+                >
+                  <span className="rounded-full bg-ink" style={{ width: w + 2, height: w + 2 }} />
+                </button>
+              ))}
+              <Divider />
+              <PillBtn onClick={undo} label="Undo" disabled={undoStack.length === 0}><Undo2 className="h-[18px] w-[18px]" /></PillBtn>
+              <PillBtn onClick={redo} label="Redo" disabled={redoStack.length === 0}><Redo2 className="h-[18px] w-[18px]" /></PillBtn>
+              <PillBtn
+                label="Done"
+                onClick={() => { setAnnotateOpen(false); setTool("pan"); }}
+              >
+                <X className="h-[18px] w-[18px]" />
+              </PillBtn>
+            </GlassPill>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-const ToolBtn = ({
+const GlassPill = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <div
+    className={`pointer-events-auto flex items-center gap-0.5 rounded-full px-2 py-1.5 bg-background/55 backdrop-blur-xl border border-ink/10 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.18)] ${className}`}
+  >
+    {children}
+  </div>
+);
+
+const Divider = () => <div className="w-px h-5 bg-ink/10 mx-1" />;
+
+const PillBtn = ({
   active,
   onClick,
   label,
@@ -509,7 +491,7 @@ const ToolBtn = ({
   disabled,
 }: {
   active?: boolean;
-  onClick: () => void;
+  onClick?: () => void;
   label: string;
   children: React.ReactNode;
   disabled?: boolean;
@@ -519,8 +501,8 @@ const ToolBtn = ({
     disabled={disabled}
     title={label}
     aria-label={label}
-    className={`h-8 w-8 rounded-full flex items-center justify-center transition ${
-      active ? "bg-paper text-ink" : "hover:bg-paper/10"
+    className={`pointer-events-auto h-9 w-9 rounded-full flex items-center justify-center transition shrink-0 ${
+      active ? "bg-ink text-paper" : "text-ink hover:bg-ink/5"
     } disabled:opacity-30 disabled:hover:bg-transparent`}
   >
     {children}
