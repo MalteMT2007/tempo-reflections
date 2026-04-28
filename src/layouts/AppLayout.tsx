@@ -5,12 +5,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getProfile, DbProfile } from "@/lib/api";
 import { BottomDock } from "@/components/BottomDock";
+import { ReaderHamburger } from "@/components/ReaderHamburger";
 
 export default function AppLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [pending, setPending] = useState(0);
   const [profile, setProfile] = useState<DbProfile | null>(null);
+  const [readerOpen, setReaderOpen] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setReaderOpen(document.body.hasAttribute("data-reader-open"));
+    sync();
+    window.addEventListener("reader-open-change", sync);
+    return () => window.removeEventListener("reader-open-change", sync);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -88,7 +97,7 @@ export default function AppLayout() {
         <Outlet />
       </main>
 
-      <BottomDock />
+      {readerOpen ? <ReaderHamburger /> : <BottomDock />}
     </div>
   );
 }
