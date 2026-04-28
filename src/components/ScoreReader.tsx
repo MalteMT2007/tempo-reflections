@@ -504,6 +504,9 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
             <div className="flex-1 min-w-0 px-2 text-center">
               <p className="text-[13px] text-ink truncate">{titleLabel}</p>
             </div>
+            <div className="px-1">
+              <PresenceAvatars users={presenceUsers} meId={user?.id} />
+            </div>
             <PillBtn label="More"><ChevronDown className="h-[18px] w-[18px]" /></PillBtn>
           </GlassPill>
 
