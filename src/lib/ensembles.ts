@@ -82,21 +82,18 @@ export async function deleteSection(id: string) {
 export async function listMembers(ensembleId: string): Promise<MemberRow[]> {
   const { data, error } = await supabase
     .from("ensemble_members")
-    .select("ensemble_id, user_id, role, section_id, joined_at, profile:profiles!ensemble_members_user_id_fkey(username, display_name, avatar_url, instrument)")
+    .select("ensemble_id, user_id, role, section_id, joined_at")
     .eq("ensemble_id", ensembleId);
-  // The FK name may not exist; fallback:
-  if (error) {
-    const { data: d2, error: e2 } = await supabase
-      .from("ensemble_members")
-      .select("ensemble_id, user_id, role, section_id, joined_at")
-      .eq("ensemble_id", ensembleId);
-    if (e2) throw e2;
-    const ids = (d2 ?? []).map((r: any) => r.user_id);
-    const { data: profs } = await supabase.from("profiles").select("id, username, display_name, avatar_url, instrument").in("id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
-    const map = new Map((profs ?? []).map((p: any) => [p.id, p]));
-    return (d2 ?? []).map((r: any) => ({ ...r, profile: map.get(r.user_id) ?? null }));
-  }
-  return (data ?? []) as any;
+  if (error) throw error;
+  const rows = (data ?? []) as any[];
+  const ids = rows.map((r) => r.user_id);
+  if (ids.length === 0) return [];
+  const { data: profs } = await supabase
+    .from("profiles")
+    .select("id, username, display_name, avatar_url, instrument")
+    .in("id", ids);
+  const map = new Map((profs ?? []).map((p: any) => [p.id, p]));
+  return rows.map((r) => ({ ...r, profile: map.get(r.user_id) ?? null }));
 }
 export async function updateMemberRole(ensembleId: string, userId: string, role: EnsembleRole, sectionId: string | null) {
   const { error } = await supabase.from("ensemble_members")
