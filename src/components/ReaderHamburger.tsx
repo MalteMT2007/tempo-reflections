@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Menu, Users, UserPlus, Users2, Home as HomeIcon, Bell } from "lucide-react";
+import { Menu, UserPlus, Bell, User, Compass, Users2, Home as HomeIcon } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -8,11 +8,11 @@ import {
 
 const items = [
   { to: "/", label: "Home", Icon: HomeIcon },
-  { to: "/library", label: "Library", Icon: BookOpen },
-  { to: "/ensembles", label: "Ensembles", Icon: Users },
   { to: "/colleagues", label: "Colleagues", Icon: UserPlus },
-  { to: "/spaces/rooms", label: "Rooms", Icon: Users2 },
   { to: "/inbox", label: "Inbox", Icon: Bell },
+  { to: "/spaces", label: "Spaces", Icon: Users2 },
+  { to: "/discover", label: "Discover", Icon: Compass },
+  { to: "/profile", label: "Profile", Icon: User },
 ];
 
 export function ReaderHamburger() {
@@ -20,7 +20,7 @@ export function ReaderHamburger() {
 
   return (
     <div
-      className="fixed z-50 pointer-events-none"
+      className="fixed z-[50] pointer-events-none"
       style={{
         bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
         right: "calc(env(safe-area-inset-right, 0px) + 16px)",
@@ -39,7 +39,7 @@ export function ReaderHamburger() {
           align="end"
           side="top"
           sideOffset={10}
-          className="pointer-events-auto w-48 p-1 rounded-2xl border border-border/60 bg-background/90 backdrop-blur-xl"
+          className="pointer-events-auto w-48 p-1 rounded-2xl border border-border/60 bg-background/90 backdrop-blur-xl z-[60]"
         >
           <ul className="flex flex-col">
             {items.map(({ to, label, Icon }) => (
