@@ -364,6 +364,7 @@ function RoomView({ room, onBack, onChanged }: { room: Room; onBack: () => void;
       </div>
 
       <InviteDialog open={inviteOpen} onClose={() => setInviteOpen(false)} roomId={room.id} excludeIds={memberIds} />
+      <EditRoomDialog open={editOpen} onClose={() => setEditOpen(false)} room={room} onSaved={onChanged} />
     </div>
   );
 }
@@ -447,13 +448,23 @@ export default function RoomsPanel() {
                     active ? "bg-white/[0.10]" : "hover:bg-white/[0.06]"
                   }`}
                 >
-                  <div className="h-10 w-10 rounded-2xl glass grid place-items-center">
-                    {r.is_public ? <Hash className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                  <div className="h-11 w-11 rounded-full overflow-hidden glass grid place-items-center shrink-0">
+                    {r.avatar_url ? (
+                      <img src={r.avatar_url} alt={r.name} className="h-full w-full object-cover" />
+                    ) : r.is_public ? (
+                      <Users2 className="h-4 w-4" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[14.5px] font-medium truncate">{r.name}</div>
+                    {r.description && (
+                      <div className="text-[12px] text-foreground/45 truncate">{r.description}</div>
+                    )}
                   </div>
-                  <span className="text-[11px] text-foreground/45 px-2 py-0.5 rounded-full bg-white/[0.06]">
+                  <span className="inline-flex items-center gap-1 text-[11.5px] text-foreground/55 px-2 py-0.5 rounded-full bg-white/[0.06] shrink-0">
+                    <Users className="h-3 w-3" />
                     {r.member_count}
                   </span>
                 </button>
