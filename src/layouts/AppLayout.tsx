@@ -5,6 +5,7 @@ import { getProfile, DbProfile } from "@/lib/api";
 import { BottomDock } from "@/components/BottomDock";
 import { ReaderHamburger } from "@/components/ReaderHamburger";
 import { LiveScoreReaderHost } from "@/components/LiveScoreReaderHost";
+import { PageOverlay } from "@/components/PageOverlay";
 
 export default function AppLayout() {
   const { user } = useAuth();
@@ -31,7 +32,9 @@ export default function AppLayout() {
     getProfile(user.id).then(setProfile).catch(() => {});
   }, [user]);
 
-  const initial = (profile?.display_name || profile?.username || user?.email || "?").charAt(0).toUpperCase();
+  const initial = (profile?.display_name || profile?.username || user?.email || "?")
+    .charAt(0)
+    .toUpperCase();
 
   return (
     <div className="min-h-screen w-full bg-background relative">
@@ -57,11 +60,19 @@ export default function AppLayout() {
         </button>
       )}
 
-      {/* Page overlay layer (route content). Reader page renders nothing. */}
-      <Outlet />
+      {/* Page content. Reader route renders nothing (full reader interaction).
+          All other routes are auto-wrapped in PageOverlay (blurred scrim,
+          tap-to-reader, centered pill column) so pages just emit pills. */}
+      {inReader ? (
+        <Outlet />
+      ) : (
+        <PageOverlay>
+          <Outlet />
+        </PageOverlay>
+      )}
 
-      {/* Always-on dock + hamburger */}
-      <BottomDock inReader={inReader} />
+      {/* Always-on dock + hamburger (visibility logic lives inside) */}
+      <BottomDock />
       <ReaderHamburger />
     </div>
   );

@@ -8,7 +8,7 @@ import { usePracticeStats } from "@/lib/practiceStats";
 import { listMyScores, type Score } from "@/lib/scores";
 import { getRecentMap, markScoreOpened } from "@/lib/recentScores";
 import { setBackgroundScore } from "@/components/LiveScoreReaderHost";
-import { PageOverlay } from "@/components/PageOverlay";
+
 import { GlassPill, PillSectionHeader } from "@/components/PagePill";
 
 function fmtHours(sec: number) {
@@ -85,7 +85,7 @@ const Home = () => {
   };
 
   return (
-    <PageOverlay>
+    <>
       {/* Inbox floating top-left */}
       <Link
         to="/inbox"
@@ -233,7 +233,7 @@ const Home = () => {
       <p className="text-center text-[11.5px] text-muted-foreground/80 mt-2 pointer-events-none">
         Tap the score to start reading.
       </p>
-    </PageOverlay>
+    </>
   );
 };
 
