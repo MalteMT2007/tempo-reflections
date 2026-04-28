@@ -50,7 +50,7 @@ const Ensembles = () => {
       <header className="flex items-end justify-between mb-10">
         <div>
           <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">Ensembles</p>
-          <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight leading-none">Your ensembles</h1>
+          <h1 className="text-[34px] md:text-[40px] tracking-tight leading-none font-light">Together.</h1>
         </div>
         <button
           onClick={() => setOpen(true)}
@@ -80,7 +80,7 @@ const Ensembles = () => {
                     {TYPE_LABEL[e.type]}
                   </div>
                 )}
-                <div className="text-[20px] font-semibold tracking-tight truncate">{e.name}</div>
+                <div className="tracking-tight truncate font-normal mx-0 text-lg">{e.name}</div>
                 <div className="mt-3 flex items-center gap-1.5 text-[12.5px] text-foreground/45">
                   <Users className="h-3.5 w-3.5" />
                   <span>{members[e.id]?.length ?? 0}</span>
