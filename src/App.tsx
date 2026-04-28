@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import AppLayout from "@/layouts/AppLayout";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import Profile from "./pages/Profile.tsx";
@@ -13,6 +14,7 @@ import EnsembleDetail from "./pages/EnsembleDetail.tsx";
 import InviteAccept from "./pages/InviteAccept.tsx";
 import Library from "./pages/Library.tsx";
 import Discover from "./pages/Discover.tsx";
+import Spaces from "./pages/Spaces.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -33,14 +35,21 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<Protected><Index /></Protected>} />
-            <Route path="/profile" element={<Protected><Profile /></Protected>} />
-            <Route path="/collegues" element={<Protected><Collegues /></Protected>} />
-            <Route path="/ensembles" element={<Protected><Ensembles /></Protected>} />
-            <Route path="/ensembles/:id" element={<Protected><EnsembleDetail /></Protected>} />
             <Route path="/invites/:token" element={<Protected><InviteAccept /></Protected>} />
-            <Route path="/library" element={<Protected><Library /></Protected>} />
-            <Route path="/discover" element={<Protected><Discover /></Protected>} />
+
+            {/* App shell with sidebar */}
+            <Route element={<Protected><AppLayout /></Protected>}>
+              <Route path="/" element={<Navigate to="/practise" replace />} />
+              <Route path="/practise" element={<Index />} />
+              <Route path="/ensembles" element={<Ensembles />} />
+              <Route path="/ensembles/:id" element={<EnsembleDetail />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/spaces" element={<Spaces />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/collegues" element={<Collegues />} />
+              <Route path="/discover" element={<Discover />} />
+            </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
