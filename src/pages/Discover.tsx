@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Search, Loader2, UserPlus, UserMinus } from "lucide-react";
-import { AppMenu } from "@/components/AppMenu";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { discoverProfiles, followUser, unfollowUser, listFollowing } from "@/lib/api";
 import { toast } from "sonner";
