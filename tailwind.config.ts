@@ -124,6 +124,8 @@ export default {
         "tick": "tick 0.15s ease-out",
         "pulse-soft": "pulse-soft 3s ease-in-out infinite",
         "breathe": "breathe 4s ease-in-out infinite",
+        "page-next": "page-next 200ms cubic-bezier(0.2,0.7,0.2,1) both",
+        "page-prev": "page-prev 200ms cubic-bezier(0.2,0.7,0.2,1) both",
       },
     },
   },
