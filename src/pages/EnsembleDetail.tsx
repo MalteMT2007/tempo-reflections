@@ -179,25 +179,6 @@ export default function EnsembleDetail() {
 }
 
 
-// ============== Overview ==============
-function Overview({ members, sections, projects, onJump }: { members: MemberRow[]; sections: Section[]; projects: Project[]; onJump: (t: string) => void }) {
-  return (
-    <div className="grid grid-cols-3 gap-3">
-      <button onClick={() => onJump("members")} className="rounded-lg border border-border p-4 text-left hover:bg-card/50 transition">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Members</p>
-        <p className="font-serif text-3xl text-ink mt-2">{members.length}</p>
-      </button>
-      <button onClick={() => onJump("settings")} className="rounded-lg border border-border p-4 text-left hover:bg-card/50 transition">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Sections</p>
-        <p className="font-serif text-3xl text-ink mt-2">{sections.length}</p>
-      </button>
-      <button onClick={() => onJump("projects")} className="rounded-lg border border-border p-4 text-left hover:bg-card/50 transition">
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Projects</p>
-        <p className="font-serif text-3xl text-ink mt-2">{projects.length}</p>
-      </button>
-    </div>
-  );
-}
 
 // ============== Members ==============
 function MembersTab({
