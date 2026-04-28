@@ -7,7 +7,8 @@ import { listMyUpcomingEvents, MyUpcomingEvent } from "@/lib/ensembles";
 import { usePracticeStats } from "@/lib/practiceStats";
 import { listMyScores, type Score } from "@/lib/scores";
 import { getRecentMap, markScoreOpened } from "@/lib/recentScores";
-import { ScoreReader } from "@/components/ScoreReader";
+import { setBackgroundScore } from "@/components/LiveScoreReaderHost";
+import { PageOverlay } from "@/components/PageOverlay";
 
 function fmtHours(sec: number) {
   if (!sec) return "0m";
