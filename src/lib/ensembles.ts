@@ -307,6 +307,44 @@ export async function unassignScore(id: string) {
   if (error) throw error;
 }
 
+/** Project IDs in this ensemble where the given user has at least one assignment (direct or via section). */
+export async function listProjectsAssignedToUser(ensembleId: string, userId: string): Promise<Set<string>> {
+  const { data: member } = await supabase
+    .from("ensemble_members")
+    .select("section_id")
+    .eq("ensemble_id", ensembleId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const sectionId = (member as any)?.section_id ?? null;
+
+  const { data: projects } = await supabase
+    .from("ensemble_projects").select("id").eq("ensemble_id", ensembleId);
+  const projectIds = (projects ?? []).map((p: any) => p.id);
+  if (projectIds.length === 0) return new Set();
+
+  const { data: scores } = await supabase
+    .from("project_scores").select("id, project_id").in("project_id", projectIds);
+  const scoreIds = (scores ?? []).map((s: any) => s.id);
+  const scoreToProject = new Map<string, string>((scores ?? []).map((s: any) => [s.id, s.project_id]));
+  if (scoreIds.length === 0) return new Set();
+
+  const orFilter = sectionId
+    ? `and(assignee_type.eq.member,assignee_id.eq.${userId}),and(assignee_type.eq.section,assignee_id.eq.${sectionId})`
+    : `and(assignee_type.eq.member,assignee_id.eq.${userId})`;
+  const { data: assignments } = await supabase
+    .from("project_score_assignments")
+    .select("project_score_id, assignee_type, assignee_id")
+    .in("project_score_id", scoreIds)
+    .or(orFilter);
+
+  const allowed = new Set<string>();
+  for (const a of (assignments ?? []) as any[]) {
+    const pid = scoreToProject.get(a.project_score_id);
+    if (pid) allowed.add(pid);
+  }
+  return allowed;
+}
+
 // ===== My upcoming events across all ensembles =====
 export type MyUpcomingEvent = EventRow & {
   ensemble_id: string;
