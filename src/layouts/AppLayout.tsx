@@ -23,11 +23,12 @@ export default function AppLayout() {
     let cancelled = false;
     const load = async () => {
       try {
-        const [{ count: ec }, { count: rc }] = await Promise.all([
+        const [{ count: ec }, { count: rc }, { count: dc }] = await Promise.all([
           supabase.from("ensemble_invites").select("id", { head: true, count: "exact" }).eq("status", "pending"),
           supabase.from("room_invites").select("id", { head: true, count: "exact" }).eq("status", "pending").eq("invitee_id", user.id),
+          supabase.from("direct_messages").select("id", { head: true, count: "exact" }).eq("recipient_id", user.id).is("read_at", null),
         ]);
-        if (!cancelled) setPending((ec ?? 0) + (rc ?? 0));
+        if (!cancelled) setPending((ec ?? 0) + (rc ?? 0) + (dc ?? 0));
       } catch {}
     };
     load();
@@ -35,6 +36,7 @@ export default function AppLayout() {
       .channel("inbox-badge-header")
       .on("postgres_changes", { event: "*", schema: "public", table: "ensemble_invites" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "room_invites" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "direct_messages" }, load)
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [user]);
