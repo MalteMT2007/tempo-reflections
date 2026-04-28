@@ -69,7 +69,7 @@ const Discover = () => {
 
   return (
     <main className="min-h-screen pb-20">
-      <AppMenu />
+
       <div className="max-w-md mx-auto px-6 pt-10">
         <Link to="/" className="inline-flex items-center gap-2 text-xs text-ink-soft hover:text-ink mb-6">
           <ArrowLeft className="h-3 w-3" /> Back
