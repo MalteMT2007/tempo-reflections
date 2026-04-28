@@ -169,12 +169,181 @@ export type Database = {
         }
         Relationships: []
       }
+      score_annotations: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          kind: string
+          page_index: number
+          role: string
+          score_id: string
+          session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          id?: string
+          kind: string
+          page_index?: number
+          role?: string
+          score_id: string
+          session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          kind?: string
+          page_index?: number
+          role?: string
+          score_id?: string
+          session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "score_annotations_score_id_fkey"
+            columns: ["score_id"]
+            isOneToOne: false
+            referencedRelation: "scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_annotations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "practice_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      score_ensembles: {
+        Row: {
+          ensemble_id: string
+          score_id: string
+          shared_at: string
+          shared_by: string
+        }
+        Insert: {
+          ensemble_id: string
+          score_id: string
+          shared_at?: string
+          shared_by: string
+        }
+        Update: {
+          ensemble_id?: string
+          score_id?: string
+          shared_at?: string
+          shared_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "score_ensembles_ensemble_id_fkey"
+            columns: ["ensemble_id"]
+            isOneToOne: false
+            referencedRelation: "ensembles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_ensembles_score_id_fkey"
+            columns: ["score_id"]
+            isOneToOne: false
+            referencedRelation: "scores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scores: {
+        Row: {
+          composer: string | null
+          created_at: string
+          file_path: string
+          id: string
+          instrument: string | null
+          owner_id: string
+          page_count: number
+          size_bytes: number
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          composer?: string | null
+          created_at?: string
+          file_path: string
+          id?: string
+          instrument?: string | null
+          owner_id: string
+          page_count?: number
+          size_bytes?: number
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          composer?: string | null
+          created_at?: string
+          file_path?: string
+          id?: string
+          instrument?: string | null
+          owner_id?: string
+          page_count?: number
+          size_bytes?: number
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      session_scores: {
+        Row: {
+          attached_at: string
+          score_id: string
+          session_id: string
+        }
+        Insert: {
+          attached_at?: string
+          score_id: string
+          session_id: string
+        }
+        Update: {
+          attached_at?: string
+          score_id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_scores_score_id_fkey"
+            columns: ["score_id"]
+            isOneToOne: false
+            referencedRelation: "scores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_scores_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "practice_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      can_view_score: {
+        Args: { _score_id: string; _user: string }
+        Returns: boolean
+      }
       is_ensemble_member: {
         Args: { _ensemble: string; _user: string }
         Returns: boolean
