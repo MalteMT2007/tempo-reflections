@@ -530,25 +530,38 @@ const UploadDialog = ({
         const ens = adminEnsembles.find((e) =>
           e.projects.some((p) => p.id === shareProjectId)
         );
-        if (ens) {
-          // Share score with the ensemble (RLS lets members view)
-          await supabase.from("score_ensembles").insert({
-            score_id: created.id,
-            ensemble_id: ens.id,
-            shared_by: created.owner_id,
-          });
-          // Add as a project score referencing this score
-          await createProjectScore(shareProjectId, {
-            title: created.title,
-            composer: created.composer || undefined,
-          }).then(async (ps) => {
-            // link the score_id on project_scores
-            await supabase
-              .from("project_scores")
-              .update({ score_id: created.id })
-              .eq("id", ps.id);
-          });
+        if (!ens) throw new Error("Selected project not found");
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not signed in");
+
+        // Double-check admin status via the same function the RLS policy uses
+        const { data: isAdmin, error: adminErr } = await supabase.rpc(
+          "is_ensemble_admin",
+          { _ensemble: ens.id, _user: user.id }
+        );
+        if (adminErr) throw adminErr;
+        if (!isAdmin) {
+          throw new Error("You must be an admin of the ensemble to share to its project");
         }
+
+        // Share score with the ensemble (so members can view it via RLS)
+        const { error: shareErr } = await supabase.from("score_ensembles").insert({
+          score_id: created.id,
+          ensemble_id: ens.id,
+          shared_by: user.id,
+        });
+        if (shareErr) throw shareErr;
+
+        // Add as a project score referencing this score (insert with score_id directly)
+        const { error: psErr } = await supabase.from("project_scores").insert({
+          project_id: shareProjectId,
+          title: created.title,
+          composer: created.composer || null,
+          score_id: created.id,
+          created_by: user.id,
+        });
+        if (psErr) throw psErr;
       }
       onUploaded();
     } catch (e: any) {
