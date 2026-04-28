@@ -139,6 +139,49 @@ export async function getScoreFileUrl(filePath: string): Promise<string> {
   return data.signedUrl;
 }
 
+// ---------------- Sharing ----------------
+
+export type ScoreShare = {
+  score_id: string;
+  ensemble_id: string;
+  shared_by: string;
+  shared_at: string;
+  ensembles?: { id: string; name: string } | null;
+};
+
+export async function listScoreSharing(scoreId: string): Promise<ScoreShare[]> {
+  const { data, error } = await supabase
+    .from("score_ensembles")
+    .select("score_id, ensemble_id, shared_by, shared_at, ensembles(id, name)")
+    .eq("score_id", scoreId);
+  if (error) throw error;
+  return (data ?? []) as any;
+}
+
+export async function shareScoreWithEnsemble(scoreId: string, ensembleId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in");
+  const { error } = await supabase
+    .from("score_ensembles")
+    .insert({ score_id: scoreId, ensemble_id: ensembleId, shared_by: user.id });
+  if (error && !String(error.message).toLowerCase().includes("duplicate")) throw error;
+}
+
+export async function unshareScoreFromEnsemble(scoreId: string, ensembleId: string) {
+  const { error } = await supabase
+    .from("score_ensembles")
+    .delete()
+    .eq("score_id", scoreId)
+    .eq("ensemble_id", ensembleId);
+  if (error) throw error;
+}
+
+/** Returns true if current user is the owner of the score. */
+export async function isScoreOwner(score: Score): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  return !!user && user.id === score.owner_id;
+}
+
 // ---------------- Annotations ----------------
 
 export async function listAnnotations(scoreId: string): Promise<Annotation[]> {

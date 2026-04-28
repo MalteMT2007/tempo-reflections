@@ -15,6 +15,8 @@ import {
   ArrowUpAZ,
   Clock,
   ChevronDown,
+  Share2,
+  Users,
 } from "lucide-react";
 import {
   Score,
@@ -36,6 +38,8 @@ import { GlassPill } from "@/components/PagePill";
 import { setBackgroundScore } from "@/components/LiveScoreReaderHost";
 import { useNavigate } from "react-router-dom";
 import { markScoreOpened, getOpenedAt } from "@/lib/recentScores";
+import { ShareScoreDialog } from "@/components/ShareScoreDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 type View = "grid" | "list";
 type Sort = "az" | "za" | "recent";
@@ -257,6 +261,10 @@ const ScoreActionsMenu = ({
   onChanged: () => void;
   className?: string;
 }) => {
+  const { user } = useAuth();
+  const isOwner = !!user && user.id === score.owner_id;
+  const [shareOpen, setShareOpen] = useState(false);
+
   const toggleFav = async (e: Event) => {
     e.preventDefault();
     try {
@@ -273,29 +281,58 @@ const ScoreActionsMenu = ({
     } catch {}
   };
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          onClick={(e) => e.stopPropagation()}
-          aria-label="More actions"
-          className={`h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-muted-foreground hover:text-foreground spring-tap ${className}`}
-        >
-          <MoreHorizontal className="h-4 w-4" strokeWidth={2} />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
-        <DropdownMenuItem onSelect={toggleFav}>
-          <Star className={`h-4 w-4 mr-2 ${score.favorite ? "fill-current" : ""}`} />
-          {score.favorite ? "Remove favorite" : "Favorite"}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={remove} className="text-destructive focus:text-destructive">
-          <Trash2 className="h-4 w-4 mr-2" />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            onClick={(e) => e.stopPropagation()}
+            aria-label="More actions"
+            className={`h-8 w-8 grid place-items-center rounded-full hover:bg-muted text-muted-foreground hover:text-foreground spring-tap ${className}`}
+          >
+            <MoreHorizontal className="h-4 w-4" strokeWidth={2} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
+          {isOwner && (
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                setShareOpen(true);
+              }}
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share with ensemble…
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onSelect={toggleFav}>
+            <Star className={`h-4 w-4 mr-2 ${score.favorite ? "fill-current" : ""}`} />
+            {score.favorite ? "Remove favorite" : "Favorite"}
+          </DropdownMenuItem>
+          {isOwner && (
+            <DropdownMenuItem onSelect={remove} className="text-destructive focus:text-destructive">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {shareOpen && (
+        <ShareScoreDialog score={score} onClose={() => { setShareOpen(false); onChanged(); }} />
+      )}
+    </>
   );
 };
+
+// ---------- Shared badge ----------
+const SharedBadge = ({ className = "" }: { className?: string }) => (
+  <span
+    className={`inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium px-1.5 py-0.5 ${className}`}
+    title="Shared with you"
+  >
+    <Users className="h-2.5 w-2.5" strokeWidth={2.5} />
+    Shared
+  </span>
+);
 
 // ---------- Compact grid card ----------
 const ScoreCardGrid = ({
@@ -307,6 +344,8 @@ const ScoreCardGrid = ({
   onOpen: () => void;
   onChanged: () => void;
 }) => {
+  const { user } = useAuth();
+  const isShared = !!user && user.id !== score.owner_id;
   const cover = (score as any).cover_url as string | undefined;
   return (
     <div className="group relative">
@@ -321,6 +360,11 @@ const ScoreCardGrid = ({
           )}
           {score.favorite && (
             <Star className="absolute top-2 left-2 h-3.5 w-3.5 fill-foreground text-foreground drop-shadow" />
+          )}
+          {isShared && (
+            <div className="absolute top-2 right-2">
+              <SharedBadge />
+            </div>
           )}
         </div>
         <div className="px-0.5 pt-3 pr-8">
@@ -349,6 +393,8 @@ const ScoreRow = ({
   onOpen: () => void;
   onChanged: () => void;
 }) => {
+  const { user } = useAuth();
+  const isShared = !!user && user.id !== score.owner_id;
   const cover = (score as any).cover_url as string | undefined;
   return (
     <li className="flex items-center gap-2 pr-2 hover:bg-muted/60 transition-colors">
@@ -364,11 +410,12 @@ const ScoreRow = ({
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {score.favorite && <Star className="h-3 w-3 fill-foreground text-foreground shrink-0" />}
             <p className="text-[15px] font-medium text-foreground truncate leading-tight">
               {score.title}
             </p>
+            {isShared && <SharedBadge />}
           </div>
           {score.composer && (
             <p className="text-[13px] text-muted-foreground truncate mt-0.5">{score.composer}</p>
