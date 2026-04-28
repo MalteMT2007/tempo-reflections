@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Music2, Loader2, Users } from "lucide-react";
+import { Plus, Loader2, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { listMyEnsembles, createEnsemble, ensembleMembers, leaveEnsemble, DbEnsemble } from "@/lib/api";
+import { listMyEnsembles, createEnsemble, ensembleMembers, DbEnsemble } from "@/lib/api";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type MemberRow = { user_id: string; role: string; profiles: { username: string; display_name: string | null; instrument: string | null } | null };
 
@@ -12,22 +13,18 @@ const Ensembles = () => {
   const [ensembles, setEnsembles] = useState<DbEnsemble[]>([]);
   const [members, setMembers] = useState<Record<string, MemberRow[]>>({});
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
 
-  useEffect(() => { document.title = "Ensembles — Practice"; }, []);
+  useEffect(() => { document.title = "Ensembles — Tempo"; }, []);
 
   const refresh = async () => {
     if (!user) return;
     const list = await listMyEnsembles(user.id);
     setEnsembles(list);
     const all: Record<string, MemberRow[]> = {};
-    await Promise.all(
-      list.map(async (e) => {
-        all[e.id] = (await ensembleMembers(e.id)) as any;
-      })
-    );
+    await Promise.all(list.map(async (e) => { all[e.id] = (await ensembleMembers(e.id)) as any; }));
     setMembers(all);
   };
 
@@ -37,114 +34,70 @@ const Ensembles = () => {
     if (!name.trim()) return;
     try {
       await createEnsemble(name.trim(), desc.trim());
-      toast.success("Ensemble created.");
-      setName(""); setDesc(""); setCreating(false);
-      refresh();
-    } catch (e: any) {
-      toast.error(e.message ?? "Could not create");
-    }
+      setName(""); setDesc(""); setOpen(false); refresh();
+    } catch (e: any) { toast.error(e.message ?? "Could not create"); }
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-ink-soft" /></div>;
-  }
-
   return (
-    <main className="min-h-screen pb-20">
-      <div className="max-w-md mx-auto px-6 pt-10">
-        <Link to="/" className="inline-flex items-center gap-2 text-xs text-ink-soft hover:text-ink mb-6">
-          <ArrowLeft className="h-3 w-3" /> Back
-        </Link>
+    <div className="max-w-4xl mx-auto px-6 md:px-10 py-10 md:py-14">
+      <header className="flex items-center justify-between mb-10">
+        <h1 className="text-[34px] md:text-[40px] font-semibold tracking-tight">Ensembles</h1>
+        <button
+          onClick={() => setOpen(true)}
+          className="h-11 w-11 rounded-full glass-button grid place-items-center"
+          aria-label="New ensemble"
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+      </header>
 
-        <header className="mb-8 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.35em] text-muted-foreground mb-2">Ensembles</p>
-            <h1 className="font-serif text-4xl font-light text-ink">Together.</h1>
-            <p className="font-serif italic text-ink-soft mt-1">Quartets, orchestras, bands — your shared studios.</p>
-          </div>
+      {loading ? (
+        <div className="grid place-items-center py-20"><Loader2 className="h-5 w-5 animate-spin text-foreground/40" /></div>
+      ) : ensembles.length === 0 ? (
+        <div className="glass rounded-3xl p-16 text-center text-foreground/45 text-[15px]">
+          No ensembles yet
+        </div>
+      ) : (
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {ensembles.map((e) => (
+            <li key={e.id}>
+              <Link
+                to={`/ensembles/${e.id}`}
+                className="glass rounded-3xl p-6 block spring-tap hover:bg-white/[0.10] transition-colors"
+              >
+                <div className="text-[20px] font-semibold tracking-tight truncate">{e.name}</div>
+                <div className="mt-3 flex items-center gap-1.5 text-[12.5px] text-foreground/45">
+                  <Users className="h-3.5 w-3.5" />
+                  <span>{members[e.id]?.length ?? 0}</span>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="glass-strong border-white/15">
+          <DialogHeader><DialogTitle className="text-[20px]">New ensemble</DialogTitle></DialogHeader>
+          <input
+            autoFocus value={name} onChange={(e) => setName(e.target.value)}
+            placeholder="Name"
+            className="glass-input w-full h-12 px-4 rounded-2xl text-[15px]"
+          />
+          <textarea
+            rows={2} value={desc} onChange={(e) => setDesc(e.target.value)}
+            placeholder="Description (optional)"
+            className="glass-input w-full px-4 py-3 rounded-2xl text-[14px] resize-none"
+          />
           <button
-            onClick={() => setCreating((v) => !v)}
-            className="h-10 w-10 rounded-full bg-ink text-paper flex items-center justify-center shadow-elev shrink-0"
+            onClick={create} disabled={!name.trim()}
+            className="h-11 rounded-full pill-primary text-[14px] font-semibold disabled:opacity-40"
           >
-            <Plus className="h-4 w-4" />
+            Create
           </button>
-        </header>
-
-        {creating && (
-          <section className="mb-8 rounded-lg border border-border bg-card/50 p-5 animate-fade-in">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mb-3">New ensemble</p>
-            <input
-              autoFocus value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="Name (e.g. The Allegro Quartet)"
-              className="w-full bg-transparent border-b border-border focus:border-ink outline-none py-2 font-serif text-lg placeholder:text-muted-foreground/60 placeholder:italic mb-3"
-            />
-            <textarea
-              rows={2} value={desc} onChange={(e) => setDesc(e.target.value)}
-              placeholder="A short description (optional)"
-              className="w-full bg-transparent border-b border-border focus:border-ink outline-none py-2 font-serif text-sm placeholder:text-muted-foreground/60 placeholder:italic resize-none"
-            />
-            <div className="flex gap-2 mt-4">
-              <button onClick={create} disabled={!name.trim()}
-                className="flex-1 bg-ink text-paper rounded-full py-2 text-sm disabled:opacity-40 hover:opacity-90 transition">
-                Create
-              </button>
-              <button onClick={() => setCreating(false)}
-                className="px-4 rounded-full border border-border text-sm text-ink-soft hover:text-ink transition">
-                Cancel
-              </button>
-            </div>
-          </section>
-        )}
-
-        {ensembles.length === 0 && !creating ? (
-          <div className="text-center py-16 border border-dashed border-border rounded-lg">
-            <Music2 className="h-6 w-6 text-ink-soft mx-auto mb-3" />
-            <p className="font-serif italic text-ink-soft">No ensembles yet.</p>
-            <p className="text-xs text-muted-foreground mt-2">Create one to gather your group.</p>
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            {ensembles.map((e) => (
-              <li key={e.id} className="rounded-lg border border-border bg-card/40 p-5">
-                <Link to={`/ensembles/${e.id}`} className="block">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="min-w-0">
-                      <p className="font-serif text-xl text-ink leading-tight">{e.name}</p>
-                      {e.description && <p className="font-serif italic text-sm text-ink-soft mt-1">{e.description}</p>}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-3">
-                    <Users className="h-3 w-3" />
-                    <span>{(members[e.id]?.length ?? 0)} member{(members[e.id]?.length ?? 0) === 1 ? "" : "s"}</span>
-                  </div>
-                  {members[e.id] && members[e.id].length > 0 && (
-                    <ul className="mt-3 flex flex-wrap gap-1.5">
-                      {members[e.id].map((m) => (
-                        <li key={m.user_id} className="text-xs px-2.5 py-1 rounded-full border border-border text-ink-soft">
-                          {m.profiles?.display_name || m.profiles?.username || "Member"}
-                          {m.profiles?.instrument && <span className="text-muted-foreground"> · {m.profiles.instrument}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-4 font-serif italic normal-case">
-                    Open ensemble →
-                  </p>
-                </Link>
-                {e.created_by !== user?.id && (
-                  <button
-                    onClick={async () => { await leaveEnsemble(e.id); refresh(); }}
-                    className="text-[10px] uppercase tracking-wider text-ink-soft hover:text-ink mt-3"
-                  >
-                    Leave
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </main>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
