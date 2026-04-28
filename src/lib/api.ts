@@ -9,7 +9,94 @@ export type DbProfile = {
   genre_label: string | null;
   bio: string | null;
   avatar_url: string | null;
+  onboarding_complete?: boolean;
 };
+
+// --- Username helpers ---
+export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+
+export function validateUsername(name: string): string | null {
+  const v = name.trim();
+  if (v.length < 3) return "Minst 3 tecken";
+  if (v.length > 20) return "Max 20 tecken";
+  if (!USERNAME_RE.test(v)) return "Endast a–z, 0–9, _";
+  return null;
+}
+
+export async function checkUsernameAvailable(name: string): Promise<boolean> {
+  const v = name.trim().toLowerCase();
+  if (validateUsername(v)) return false;
+  const { data, error } = await supabase.rpc("username_available", { _name: v });
+  if (error) throw error;
+  return !!data;
+}
+
+// --- Avatars ---
+export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${userId}/avatar-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw error;
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// --- Follows ---
+export type FollowRow = { id: string; follower_id: string; followee_id: string; created_at: string };
+
+export async function followUser(followeeId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in");
+  const { error } = await supabase
+    .from("follows")
+    .insert({ follower_id: user.id, followee_id: followeeId });
+  if (error) throw error;
+}
+
+export async function unfollowUser(followeeId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not signed in");
+  const { error } = await supabase
+    .from("follows")
+    .delete()
+    .eq("follower_id", user.id)
+    .eq("followee_id", followeeId);
+  if (error) throw error;
+}
+
+export async function listFollowing(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("followee_id")
+    .eq("follower_id", userId);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => r.followee_id);
+}
+
+export async function listFollowers(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("follower_id")
+    .eq("followee_id", userId);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => r.follower_id);
+}
+
+export async function discoverProfiles(query: string, excludeId?: string) {
+  const q = query.trim();
+  let req = supabase
+    .from("profiles")
+    .select("id, username, display_name, instrument, bio, avatar_url")
+    .eq("onboarding_complete", true)
+    .limit(40);
+  if (q) req = req.or(`username.ilike.%${q}%,display_name.ilike.%${q}%`);
+  if (excludeId) req = req.neq("id", excludeId);
+  const { data, error } = await req;
+  if (error) throw error;
+  return data ?? [];
+}
 
 export async function getProfile(userId: string) {
   const { data, error } = await supabase

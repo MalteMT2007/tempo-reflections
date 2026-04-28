@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, User, Users, Music2, LogOut, FileMusic } from "lucide-react";
+import { Menu, X, User, Users, Music2, LogOut, FileMusic, Compass } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getProfile, DbProfile } from "@/lib/api";
 
@@ -52,10 +52,12 @@ export const AppMenu = () => {
             {/* Identity */}
             <div className="mb-8 pb-6 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-ink text-paper flex items-center justify-center font-serif text-lg">
-                  {(profile?.display_name || profile?.username || user?.email || "?")
-                    .charAt(0)
-                    .toUpperCase()}
+                <div className="h-12 w-12 rounded-full bg-ink text-paper flex items-center justify-center font-serif text-lg overflow-hidden">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    (profile?.display_name || profile?.username || user?.email || "?").charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div className="min-w-0">
                   <p className="font-serif text-lg text-ink truncate leading-tight">
@@ -77,6 +79,10 @@ export const AppMenu = () => {
             <nav className="flex flex-col gap-1">
               <MenuItem to="/profile" icon={<User className="h-4 w-4" />} onClick={() => setOpen(false)}>
                 Your profile
+              </MenuItem>
+              <MenuItem to="/discover" icon={<Compass className="h-4 w-4" />} onClick={() => setOpen(false)}>
+                Discover
+                <span className="text-[10px] text-ink-soft font-serif italic ml-auto">find musicians</span>
               </MenuItem>
               <MenuItem to="/collegues" icon={<Users className="h-4 w-4" />} onClick={() => setOpen(false)}>
                 Collegues

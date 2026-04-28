@@ -70,6 +70,27 @@ export type Database = {
         }
         Relationships: []
       }
+      follows: {
+        Row: {
+          created_at: string
+          followee_id: string
+          follower_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          followee_id: string
+          follower_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          followee_id?: string
+          follower_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           addressee_id: string
@@ -140,6 +161,7 @@ export type Database = {
           genre_label: string | null
           id: string
           instrument: string | null
+          onboarding_complete: boolean
           updated_at: string
           username: string
         }
@@ -152,6 +174,7 @@ export type Database = {
           genre_label?: string | null
           id: string
           instrument?: string | null
+          onboarding_complete?: boolean
           updated_at?: string
           username: string
         }
@@ -164,6 +187,7 @@ export type Database = {
           genre_label?: string | null
           id?: string
           instrument?: string | null
+          onboarding_complete?: boolean
           updated_at?: string
           username?: string
         }
@@ -356,6 +380,7 @@ export type Database = {
         Args: { _score_id: string; _user: string }
         Returns: boolean
       }
+      username_available: { Args: { _name: string }; Returns: boolean }
     }
     Enums: {
       friendship_status: "pending" | "accepted"
