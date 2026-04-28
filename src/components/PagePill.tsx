@@ -28,8 +28,8 @@ export function GlassPill({
 }) {
   return (
     <div
-      onClick={onClick}
-      className={`rounded-3xl px-5 py-4 bg-background/70 backdrop-blur-2xl backdrop-saturate-150 border border-border/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.12)] ${className}`}
+      onClick={(e) => { e.stopPropagation(); onClick?.(e); }}
+      className={`pointer-events-auto rounded-3xl px-5 py-4 bg-background/70 backdrop-blur-2xl backdrop-saturate-150 border border-border/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.12)] ${className}`}
     >
       {children}
     </div>
