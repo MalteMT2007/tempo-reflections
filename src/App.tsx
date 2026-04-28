@@ -9,6 +9,8 @@ import Auth from "./pages/Auth.tsx";
 import Profile from "./pages/Profile.tsx";
 import Collegues from "./pages/Collegues.tsx";
 import Ensembles from "./pages/Ensembles.tsx";
+import EnsembleDetail from "./pages/EnsembleDetail.tsx";
+import InviteAccept from "./pages/InviteAccept.tsx";
 import Library from "./pages/Library.tsx";
 import Discover from "./pages/Discover.tsx";
 import NotFound from "./pages/NotFound.tsx";
