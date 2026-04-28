@@ -14,28 +14,165 @@ export type Database = {
   }
   public: {
     Tables: {
+      ensemble_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string | null
+          ensemble_id: string
+          id: string
+          invited_by: string
+          invitee_user_id: string | null
+          role: Database["public"]["Enums"]["ensemble_role"]
+          section_id: string | null
+          status: Database["public"]["Enums"]["invite_status"]
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string | null
+          ensemble_id: string
+          id?: string
+          invited_by: string
+          invitee_user_id?: string | null
+          role?: Database["public"]["Enums"]["ensemble_role"]
+          section_id?: string | null
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string | null
+          ensemble_id?: string
+          id?: string
+          invited_by?: string
+          invitee_user_id?: string | null
+          role?: Database["public"]["Enums"]["ensemble_role"]
+          section_id?: string | null
+          status?: Database["public"]["Enums"]["invite_status"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ensemble_invites_ensemble_id_fkey"
+            columns: ["ensemble_id"]
+            isOneToOne: false
+            referencedRelation: "ensembles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ensemble_invites_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "ensemble_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ensemble_members: {
         Row: {
           ensemble_id: string
           joined_at: string
-          role: string
+          role: Database["public"]["Enums"]["ensemble_role"]
+          section_id: string | null
           user_id: string
         }
         Insert: {
           ensemble_id: string
           joined_at?: string
-          role?: string
+          role?: Database["public"]["Enums"]["ensemble_role"]
+          section_id?: string | null
           user_id: string
         }
         Update: {
           ensemble_id?: string
           joined_at?: string
-          role?: string
+          role?: Database["public"]["Enums"]["ensemble_role"]
+          section_id?: string | null
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "ensemble_members_ensemble_id_fkey"
+            columns: ["ensemble_id"]
+            isOneToOne: false
+            referencedRelation: "ensembles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ensemble_members_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "ensemble_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ensemble_projects: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          ensemble_id: string
+          id: string
+          status: Database["public"]["Enums"]["project_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          ensemble_id: string
+          id?: string
+          status?: Database["public"]["Enums"]["project_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          ensemble_id?: string
+          id?: string
+          status?: Database["public"]["Enums"]["project_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ensemble_projects_ensemble_id_fkey"
+            columns: ["ensemble_id"]
+            isOneToOne: false
+            referencedRelation: "ensembles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ensemble_sections: {
+        Row: {
+          created_at: string
+          ensemble_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          ensemble_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          ensemble_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ensemble_sections_ensemble_id_fkey"
             columns: ["ensemble_id"]
             isOneToOne: false
             referencedRelation: "ensembles"
@@ -192,6 +329,124 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      project_events: {
+        Row: {
+          created_at: string
+          id: string
+          location: string | null
+          notes: string | null
+          project_id: string
+          starts_at: string
+          type: Database["public"]["Enums"]["event_type"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          project_id: string
+          starts_at: string
+          type: Database["public"]["Enums"]["event_type"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          project_id?: string
+          starts_at?: string
+          type?: Database["public"]["Enums"]["event_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ensemble_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_score_assignments: {
+        Row: {
+          assignee_id: string
+          assignee_type: Database["public"]["Enums"]["assignee_type"]
+          created_at: string
+          id: string
+          project_score_id: string
+        }
+        Insert: {
+          assignee_id: string
+          assignee_type: Database["public"]["Enums"]["assignee_type"]
+          created_at?: string
+          id?: string
+          project_score_id: string
+        }
+        Update: {
+          assignee_id?: string
+          assignee_type?: Database["public"]["Enums"]["assignee_type"]
+          created_at?: string
+          id?: string
+          project_score_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_score_assignments_project_score_id_fkey"
+            columns: ["project_score_id"]
+            isOneToOne: false
+            referencedRelation: "project_scores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_scores: {
+        Row: {
+          composer: string | null
+          created_at: string
+          created_by: string
+          file_url: string | null
+          id: string
+          project_id: string
+          score_id: string | null
+          title: string
+        }
+        Insert: {
+          composer?: string | null
+          created_at?: string
+          created_by: string
+          file_url?: string | null
+          id?: string
+          project_id: string
+          score_id?: string | null
+          title: string
+        }
+        Update: {
+          composer?: string | null
+          created_at?: string
+          created_by?: string
+          file_url?: string | null
+          id?: string
+          project_id?: string
+          score_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_scores_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ensemble_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_scores_score_id_fkey"
+            columns: ["score_id"]
+            isOneToOne: false
+            referencedRelation: "scores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       score_annotations: {
         Row: {
@@ -363,13 +618,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_ensemble_invite: { Args: { _token: string }; Returns: string }
       are_friends: { Args: { _a: string; _b: string }; Returns: boolean }
+      can_view_project_score: {
+        Args: { _pscore: string; _user: string }
+        Returns: boolean
+      }
       can_view_score: {
         Args: { _score_id: string; _user: string }
         Returns: boolean
       }
+      ensemble_member_section: {
+        Args: { _ensemble: string; _user: string }
+        Returns: string
+      }
+      is_ensemble_admin: {
+        Args: { _ensemble: string; _user: string }
+        Returns: boolean
+      }
       is_ensemble_member: {
         Args: { _ensemble: string; _user: string }
+        Returns: boolean
+      }
+      is_project_admin: {
+        Args: { _project: string; _user: string }
+        Returns: boolean
+      }
+      is_project_member: {
+        Args: { _project: string; _user: string }
         Returns: boolean
       }
       is_score_owner: {
@@ -383,7 +659,12 @@ export type Database = {
       username_available: { Args: { _name: string }; Returns: boolean }
     }
     Enums: {
+      assignee_type: "section" | "member"
+      ensemble_role: "admin" | "member" | "section_member"
+      event_type: "rehearsal" | "concert"
       friendship_status: "pending" | "accepted"
+      invite_status: "pending" | "accepted" | "revoked"
+      project_status: "planning" | "rehearsing" | "completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -511,7 +792,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      assignee_type: ["section", "member"],
+      ensemble_role: ["admin", "member", "section_member"],
+      event_type: ["rehearsal", "concert"],
       friendship_status: ["pending", "accepted"],
+      invite_status: ["pending", "accepted", "revoked"],
+      project_status: ["planning", "rehearsing", "completed"],
     },
   },
 } as const
