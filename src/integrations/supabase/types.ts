@@ -904,6 +904,36 @@ export type Database = {
           },
         ]
       }
+      score_setlists: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          occasion_date: string | null
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          occasion_date?: string | null
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          occasion_date?: string | null
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       scores: {
         Row: {
           composer: string | null
@@ -978,6 +1008,35 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "practice_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      setlist_scores: {
+        Row: {
+          added_at: string
+          score_id: string
+          setlist_id: string
+          sort_order: number
+        }
+        Insert: {
+          added_at?: string
+          score_id: string
+          setlist_id: string
+          sort_order?: number
+        }
+        Update: {
+          added_at?: string
+          score_id?: string
+          setlist_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "setlist_scores_setlist_id_fkey"
+            columns: ["setlist_id"]
+            isOneToOne: false
+            referencedRelation: "score_setlists"
             referencedColumns: ["id"]
           },
         ]
