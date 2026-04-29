@@ -420,17 +420,54 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     setUndoStack((s) => [...s, created.id]);
   };
 
-  const goPrev = () => setPageIndex((p) => Math.max(0, p - 1));
-  const goNext = () => setPageIndex((p) => Math.min(pageCount - 1, p + 1));
+  // Half-page aware navigation: in half mode we step through halves first.
+  const goPrev = () => {
+    if (halfPage) {
+      if (halfIdx === 1) { setHalfIdx(0); return; }
+      setPageIndex((p) => {
+        if (p <= 0) return 0;
+        setHalfIdx(1);
+        return p - 1;
+      });
+      return;
+    }
+    setPageIndex((p) => Math.max(0, p - 1));
+  };
+  const goNext = () => {
+    if (halfPage) {
+      if (halfIdx === 0) { setHalfIdx(1); return; }
+      setPageIndex((p) => {
+        if (p >= pageCount - 1) return p;
+        setHalfIdx(0);
+        return p + 1;
+      });
+      return;
+    }
+    setPageIndex((p) => Math.min(pageCount - 1, p + 1));
+  };
+
+  // Reset half offset when page changes externally or mode toggles off
+  useEffect(() => { if (!halfPage) setHalfIdx(0); }, [halfPage]);
+
+  // Double-tap detection on the center zone (image_1: opens sheet)
+  const lastTapRef = useRef<number>(0);
 
   // Center tap toggles chrome; edge taps navigate (finger only — pencil draws)
   const handleZoneTap = (zone: "prev" | "center" | "next") => (e: React.PointerEvent) => {
     if (e.pointerType === "pen") return;
     if (tool === "draw" || tool === "text" || tool === "erase") return;
     e.preventDefault();
-    if (zone === "prev") goPrev();
-    else if (zone === "next") goNext();
-    else setChromeVisible((v) => !v);
+    if (zone === "prev") { goPrev(); return; }
+    if (zone === "next") { goNext(); return; }
+    // center: detect double-tap
+    const now = Date.now();
+    if (now - lastTapRef.current < 320) {
+      lastTapRef.current = 0;
+      setSheetOpen(true);
+      return;
+    }
+    lastTapRef.current = now;
+    setChromeVisible((v) => !v);
   };
 
   useEffect(() => {
