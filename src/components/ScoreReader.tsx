@@ -245,9 +245,11 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       const containerW = container?.clientWidth ?? 800;
       const containerH = container?.clientHeight ?? 800;
       const baseViewport = page.getViewport({ scale: 1 });
-      // Fit page to container (height-priority for ForScore feel)
+      // Fit page to container; in half-page mode the visible viewport height
+      // is effectively halved, so we fit so half the page fills the container.
+      const visibleH = halfPage ? baseViewport.height / 2 : baseViewport.height;
       const fitW = (containerW - 32) / baseViewport.width;
-      const fitH = (containerH - 32) / baseViewport.height;
+      const fitH = (containerH - 32) / visibleH;
       const fitScale = Math.min(fitW, fitH);
       const finalScale = fitScale * scale;
       const viewport = page.getViewport({ scale: finalScale });
