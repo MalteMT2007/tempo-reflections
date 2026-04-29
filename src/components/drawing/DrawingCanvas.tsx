@@ -152,10 +152,6 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
         target: e.currentTarget,
       });
       proc.push(samples);
-      // Predicted samples: not pushed into the processor (they'd corrupt history),
-      // but we could render a transient lookahead here. Skipped to keep
-      // committed and visible state in sync.
-      void extractPredictedPoints; // reserved for future preview lookahead
       dirtyRef.current = true;
       scheduleRender();
     };

@@ -14,7 +14,6 @@ import {
   X,
   Pencil,
   Type as TypeIcon,
-  Eraser,
   Undo2,
   Redo2,
 } from "lucide-react";
@@ -37,6 +36,9 @@ import { useScorePresence, type PresenceUser } from "@/hooks/useScorePresence";
 import { PresenceAvatars } from "@/components/PresenceAvatars";
 import { useDraggableSnap, dockStyle, isVerticalEdge } from "@/hooks/useDraggableSnap";
 import { GripVertical } from "lucide-react";
+import { ReaderSheet } from "@/components/reader/ReaderSheet";
+import { WarmScreen } from "@/components/reader/WarmScreen";
+import { EraserToolButton, type EraseMode } from "@/components/reader/EraserPopover";
 
 type Tool = "pan" | "draw" | "text" | "erase";
 
@@ -77,6 +79,21 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<Annotation[]>([]);
+
+  // Eraser modes (image_0 reference)
+  const [eraseMode, setEraseMode] = useState<EraseMode>("standard");
+
+  // Reader sheet (image_1 reference) — opens on double-tap
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [halfPage, setHalfPage] = useState(false);
+  // 0 = top half, 1 = bottom half (only relevant when halfPage)
+  const [halfIdx, setHalfIdx] = useState<0 | 1>(0);
+  const [warmScreen, setWarmScreen] = useState<boolean>(() => {
+    try { return localStorage.getItem("reader:warm-screen") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("reader:warm-screen", warmScreen ? "1" : "0"); } catch {}
+  }, [warmScreen]);
 
   // ForScore-style: chrome auto-shows; tap toggles. Annotate panel only when in draw/text/erase.
   const [chromeVisible, setChromeVisible] = useState(true);
@@ -227,9 +244,11 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       const containerW = container?.clientWidth ?? 800;
       const containerH = container?.clientHeight ?? 800;
       const baseViewport = page.getViewport({ scale: 1 });
-      // Fit page to container (height-priority for ForScore feel)
+      // Fit page to container; in half-page mode the visible viewport height
+      // is effectively halved, so we fit so half the page fills the container.
+      const visibleH = halfPage ? baseViewport.height / 2 : baseViewport.height;
       const fitW = (containerW - 32) / baseViewport.width;
-      const fitH = (containerH - 32) / baseViewport.height;
+      const fitH = (containerH - 32) / visibleH;
       const fitScale = Math.min(fitW, fitH);
       const finalScale = fitScale * scale;
       const viewport = page.getViewport({ scale: finalScale });
@@ -248,20 +267,20 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       setCanvasSize(overlay);
       setRenderSize({ w: viewport.width, h: viewport.height });
 
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d", { desynchronized: true, alpha: false }) as CanvasRenderingContext2D;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       try { renderTaskRef.current?.cancel?.(); } catch {}
       renderTaskRef.current = page.render({ canvasContext: ctx, viewport });
       try { await renderTaskRef.current.promise; } catch {}
     })();
     return () => { cancelled = true; };
-  }, [pageIndex, scale, pageCount]);
+  }, [pageIndex, scale, pageCount, halfPage]);
 
   // Re-draw overlay
   useEffect(() => {
     const overlay = overlayRef.current;
     if (!overlay) return;
-    const ctx = overlay.getContext("2d")!;
+    const ctx = overlay.getContext("2d", { desynchronized: true, alpha: true }) as CanvasRenderingContext2D;
     const dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, renderSize.w, renderSize.h);
@@ -325,16 +344,22 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     } else if (tool === "erase") {
       const px = rel.x * renderSize.w;
       const py = rel.y * renderSize.h;
+      // Per-mode hit radius. Stroke mode = whole-stroke deletion (vector hit-test).
+      const radius =
+        eraseMode === "precision" ? 4 :
+        eraseMode === "stroke"    ? 6 : 14;
       const target = [...annotations].reverse().find((a) => {
         if (a.page_index !== pageIndex) return false;
-        // Own annotations always; score owner can erase anyone's
         if (a.user_id !== user?.id && !isScoreOwner) return false;
         if (a.kind === "stroke") {
           const d = a.data as StrokeData;
+          // Stroke-mode: hit anywhere along the stroke deletes it.
+          // Precision/Standard: same hit-test, just smaller radius.
           return d.points.some((p) => {
             const dx = p.x * renderSize.w - px;
             const dy = p.y * renderSize.h - py;
-            return dx * dx + dy * dy < (d.width + 8) * (d.width + 8);
+            const r = d.width + radius;
+            return dx * dx + dy * dy < r * r;
           });
         } else {
           const d = a.data as TextData;
@@ -396,17 +421,54 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     setUndoStack((s) => [...s, created.id]);
   };
 
-  const goPrev = () => setPageIndex((p) => Math.max(0, p - 1));
-  const goNext = () => setPageIndex((p) => Math.min(pageCount - 1, p + 1));
+  // Half-page aware navigation: in half mode we step through halves first.
+  const goPrev = () => {
+    if (halfPage) {
+      if (halfIdx === 1) { setHalfIdx(0); return; }
+      setPageIndex((p) => {
+        if (p <= 0) return 0;
+        setHalfIdx(1);
+        return p - 1;
+      });
+      return;
+    }
+    setPageIndex((p) => Math.max(0, p - 1));
+  };
+  const goNext = () => {
+    if (halfPage) {
+      if (halfIdx === 0) { setHalfIdx(1); return; }
+      setPageIndex((p) => {
+        if (p >= pageCount - 1) return p;
+        setHalfIdx(0);
+        return p + 1;
+      });
+      return;
+    }
+    setPageIndex((p) => Math.min(pageCount - 1, p + 1));
+  };
+
+  // Reset half offset when page changes externally or mode toggles off
+  useEffect(() => { if (!halfPage) setHalfIdx(0); }, [halfPage]);
+
+  // Double-tap detection on the center zone (image_1: opens sheet)
+  const lastTapRef = useRef<number>(0);
 
   // Center tap toggles chrome; edge taps navigate (finger only — pencil draws)
   const handleZoneTap = (zone: "prev" | "center" | "next") => (e: React.PointerEvent) => {
     if (e.pointerType === "pen") return;
     if (tool === "draw" || tool === "text" || tool === "erase") return;
     e.preventDefault();
-    if (zone === "prev") goPrev();
-    else if (zone === "next") goNext();
-    else setChromeVisible((v) => !v);
+    if (zone === "prev") { goPrev(); return; }
+    if (zone === "next") { goNext(); return; }
+    // center: detect double-tap
+    const now = Date.now();
+    if (now - lastTapRef.current < 320) {
+      lastTapRef.current = 0;
+      setSheetOpen(true);
+      return;
+    }
+    lastTapRef.current = now;
+    setChromeVisible((v) => !v);
   };
 
   useEffect(() => {
@@ -433,55 +495,94 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       {/* Canvas area */}
       <div ref={containerRef} className="flex-1 overflow-hidden flex items-center justify-center relative">
         <div
-          className="relative shadow-elev bg-paper"
-          style={{ width: renderSize.w || undefined, height: renderSize.h || undefined }}
+          className="relative shadow-elev bg-paper overflow-hidden"
+          style={{
+            width: renderSize.w || undefined,
+            height: halfPage && renderSize.h ? renderSize.h / 2 : (renderSize.h || undefined),
+          }}
         >
-          <canvas ref={canvasRef} className="block" />
-          <canvas ref={overlayRef} className="absolute inset-0 pointer-events-none" />
-
-          {/* Tap zones (finger only) */}
+          {/* Inner stack — translated up when viewing the bottom half */}
           <div
-            className="absolute inset-y-0 left-0 w-1/4 z-10"
+            className="relative"
+            style={{
+              width: renderSize.w || undefined,
+              height: renderSize.h || undefined,
+              transform: halfPage && halfIdx === 1 ? `translateY(-${renderSize.h / 2}px)` : undefined,
+              transition: "transform 200ms ease",
+            }}
+          >
+            <canvas ref={canvasRef} className="block" />
+            <canvas ref={overlayRef} className="absolute inset-0 pointer-events-none" />
+
+            {tool === "draw" ? (
+              <DrawingCanvas
+                width={renderSize.w}
+                height={renderSize.h}
+                color={color}
+                widthScale={width / 4}
+                acceptAll={false}
+                onStrokeComplete={handleStrokeComplete}
+                className="absolute inset-0 z-20"
+              />
+            ) : tool === "pan" ? null : (
+              <div
+                ref={drawRef as unknown as React.RefObject<HTMLDivElement>}
+                className="absolute inset-0 z-20"
+                style={{
+                  touchAction: "none",
+                  cursor: tool === "text" ? "text" : "crosshair",
+                }}
+                onPointerDown={onAuxPointerDown}
+              />
+            )}
+          </div>
+
+          {/* Tap zones (finger only) — sit on top, span the visible area */}
+          <div
+            className="absolute inset-y-0 left-0 w-1/4 z-30"
             style={{ touchAction: "manipulation" }}
             onPointerDown={handleZoneTap("prev")}
-            aria-label="Previous page"
+            aria-label="Previous"
           />
           <div
-            className="absolute inset-y-0 left-1/4 w-1/2 z-10"
+            className="absolute inset-y-0 left-1/4 w-1/2 z-30"
             style={{ touchAction: "manipulation" }}
             onPointerDown={handleZoneTap("center")}
             aria-label="Toggle controls"
           />
           <div
-            className="absolute inset-y-0 right-0 w-1/4 z-10"
+            className="absolute inset-y-0 right-0 w-1/4 z-30"
             style={{ touchAction: "manipulation" }}
             onPointerDown={handleZoneTap("next")}
-            aria-label="Next page"
+            aria-label="Next"
           />
 
-          {tool === "draw" ? (
-            <DrawingCanvas
-              width={renderSize.w}
-              height={renderSize.h}
-              color={color}
-              widthScale={width / 4}
-              acceptAll={false}
-              onStrokeComplete={handleStrokeComplete}
-              className="absolute inset-0 z-20"
-            />
-          ) : tool === "pan" ? null : (
+          {/* Visual half-page divider hint */}
+          {halfPage && (
             <div
-              ref={drawRef as unknown as React.RefObject<HTMLDivElement>}
-              className="absolute inset-0 z-20"
-              style={{
-                touchAction: "none",
-                cursor: tool === "text" ? "text" : "crosshair",
-              }}
-              onPointerDown={onAuxPointerDown}
+              className="pointer-events-none absolute left-0 right-0 z-20 h-px bg-foreground/15"
+              style={{ top: halfIdx === 0 ? "100%" : 0 }}
+              aria-hidden
             />
           )}
         </div>
       </div>
+
+      {/* Reader sheet (image_1) */}
+      <ReaderSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        halfPage={halfPage}
+        setHalfPage={(v) => { setHalfPage(v); if (!v) setHalfIdx(0); }}
+        warmScreen={warmScreen}
+        setWarmScreen={setWarmScreen}
+        onPrev={goPrev}
+        onNext={goNext}
+        pageLabel={`Sida ${pageIndex + 1} av ${pageCount || score.page_count || 0}${halfPage ? ` · ${halfIdx === 0 ? "övre" : "nedre"}` : ""}`}
+      />
+
+      {/* Warm screen overlay (image_1) */}
+      <WarmScreen active={warmScreen} />
 
       {/* === ForScore-style floating top toolbar (3 glass pills) === */}
       <div
@@ -540,6 +641,8 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
           setColor={setColor}
           width={width}
           setWidth={setWidth}
+          eraseMode={eraseMode}
+          setEraseMode={setEraseMode}
           undo={undo}
           redo={redo}
           undoDisabled={undoStack.length === 0}
@@ -560,6 +663,8 @@ function DraggableAnnotateToolbar({
   setColor,
   width,
   setWidth,
+  eraseMode,
+  setEraseMode,
   undo,
   redo,
   undoDisabled,
@@ -573,6 +678,8 @@ function DraggableAnnotateToolbar({
   setColor: (c: string) => void;
   width: number;
   setWidth: (w: number) => void;
+  eraseMode: EraseMode;
+  setEraseMode: (m: EraseMode) => void;
   undo: () => void;
   redo: () => void;
   undoDisabled: boolean;
@@ -617,7 +724,12 @@ function DraggableAnnotateToolbar({
           <ToolDivider vertical={vertical} />
           <PillBtn active={tool === "draw"} onClick={() => setTool("draw")} label="Draw"><Pencil className="h-[18px] w-[18px]" /></PillBtn>
           <PillBtn active={tool === "text"} onClick={() => setTool("text")} label="Text"><TypeIcon className="h-[18px] w-[18px]" /></PillBtn>
-          <PillBtn active={tool === "erase"} onClick={() => setTool("erase")} label="Erase"><Eraser className="h-[18px] w-[18px]" /></PillBtn>
+          <EraserToolButton
+            active={tool === "erase"}
+            mode={eraseMode}
+            onModeChange={setEraseMode}
+            onActivate={() => setTool("erase")}
+          />
           <ToolDivider vertical={vertical} />
           {COLORS.map((c) => (
             <button
