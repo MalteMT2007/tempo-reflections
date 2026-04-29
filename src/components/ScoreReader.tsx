@@ -642,6 +642,8 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
           setColor={setColor}
           width={width}
           setWidth={setWidth}
+          eraseMode={eraseMode}
+          setEraseMode={setEraseMode}
           undo={undo}
           redo={redo}
           undoDisabled={undoStack.length === 0}
