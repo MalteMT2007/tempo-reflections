@@ -152,14 +152,6 @@ export const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>
         target: e.currentTarget,
       });
       proc.push(samples);
-      // Predicted lookahead: feeds upcoming samples into a *temp* processor
-      // to draw "ahead of the pen" without polluting the committed stroke.
-      // We render predicted in the same RAF tick.
-      const predicted = extractPredictedPoints(native, { target: e.currentTarget });
-      if (predicted.length > 0) {
-        // We don't need to keep them — they'll be replaced by real samples next frame.
-        proc.push(predicted as unknown as Point[]);
-      }
       dirtyRef.current = true;
       scheduleRender();
     };
