@@ -81,6 +81,21 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<Annotation[]>([]);
 
+  // Eraser modes (image_0 reference)
+  const [eraseMode, setEraseMode] = useState<EraseMode>("standard");
+
+  // Reader sheet (image_1 reference) — opens on double-tap
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [halfPage, setHalfPage] = useState(false);
+  // 0 = top half, 1 = bottom half (only relevant when halfPage)
+  const [halfIdx, setHalfIdx] = useState<0 | 1>(0);
+  const [warmScreen, setWarmScreen] = useState<boolean>(() => {
+    try { return localStorage.getItem("reader:warm-screen") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("reader:warm-screen", warmScreen ? "1" : "0"); } catch {}
+  }, [warmScreen]);
+
   // ForScore-style: chrome auto-shows; tap toggles. Annotate panel only when in draw/text/erase.
   const [chromeVisible, setChromeVisible] = useState(true);
   const [annotateOpen, setAnnotateOpen] = useState(false);
