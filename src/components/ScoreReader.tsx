@@ -37,6 +37,9 @@ import { useScorePresence, type PresenceUser } from "@/hooks/useScorePresence";
 import { PresenceAvatars } from "@/components/PresenceAvatars";
 import { useDraggableSnap, dockStyle, isVerticalEdge } from "@/hooks/useDraggableSnap";
 import { GripVertical } from "lucide-react";
+import { ReaderSheet } from "@/components/reader/ReaderSheet";
+import { WarmScreen } from "@/components/reader/WarmScreen";
+import { EraserToolButton, type EraseMode } from "@/components/reader/EraserPopover";
 
 type Tool = "pan" | "draw" | "text" | "erase";
 
