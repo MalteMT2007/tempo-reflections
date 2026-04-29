@@ -343,16 +343,22 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
     } else if (tool === "erase") {
       const px = rel.x * renderSize.w;
       const py = rel.y * renderSize.h;
+      // Per-mode hit radius. Stroke mode = whole-stroke deletion (vector hit-test).
+      const radius =
+        eraseMode === "precision" ? 4 :
+        eraseMode === "stroke"    ? 6 : 14;
       const target = [...annotations].reverse().find((a) => {
         if (a.page_index !== pageIndex) return false;
-        // Own annotations always; score owner can erase anyone's
         if (a.user_id !== user?.id && !isScoreOwner) return false;
         if (a.kind === "stroke") {
           const d = a.data as StrokeData;
+          // Stroke-mode: hit anywhere along the stroke deletes it.
+          // Precision/Standard: same hit-test, just smaller radius.
           return d.points.some((p) => {
             const dx = p.x * renderSize.w - px;
             const dy = p.y * renderSize.h - py;
-            return dx * dx + dy * dy < (d.width + 8) * (d.width + 8);
+            const r = d.width + radius;
+            return dx * dx + dy * dy < r * r;
           });
         } else {
           const d = a.data as TextData;
