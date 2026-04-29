@@ -275,7 +275,7 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       try { await renderTaskRef.current.promise; } catch {}
     })();
     return () => { cancelled = true; };
-  }, [pageIndex, scale, pageCount]);
+  }, [pageIndex, scale, pageCount, halfPage]);
 
   // Re-draw overlay
   useEffect(() => {
