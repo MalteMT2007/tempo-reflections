@@ -248,7 +248,7 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       setCanvasSize(overlay);
       setRenderSize({ w: viewport.width, h: viewport.height });
 
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d", { desynchronized: true, alpha: false }) as CanvasRenderingContext2D;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       try { renderTaskRef.current?.cancel?.(); } catch {}
       renderTaskRef.current = page.render({ canvasContext: ctx, viewport });
