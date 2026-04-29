@@ -725,7 +725,12 @@ function DraggableAnnotateToolbar({
           <ToolDivider vertical={vertical} />
           <PillBtn active={tool === "draw"} onClick={() => setTool("draw")} label="Draw"><Pencil className="h-[18px] w-[18px]" /></PillBtn>
           <PillBtn active={tool === "text"} onClick={() => setTool("text")} label="Text"><TypeIcon className="h-[18px] w-[18px]" /></PillBtn>
-          <PillBtn active={tool === "erase"} onClick={() => setTool("erase")} label="Erase"><Eraser className="h-[18px] w-[18px]" /></PillBtn>
+          <EraserToolButton
+            active={tool === "erase"}
+            mode={eraseMode}
+            onModeChange={setEraseMode}
+            onActivate={() => setTool("erase")}
+          />
           <ToolDivider vertical={vertical} />
           {COLORS.map((c) => (
             <button
