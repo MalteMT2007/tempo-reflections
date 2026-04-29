@@ -664,6 +664,8 @@ function DraggableAnnotateToolbar({
   setColor,
   width,
   setWidth,
+  eraseMode,
+  setEraseMode,
   undo,
   redo,
   undoDisabled,
@@ -677,6 +679,8 @@ function DraggableAnnotateToolbar({
   setColor: (c: string) => void;
   width: number;
   setWidth: (w: number) => void;
+  eraseMode: EraseMode;
+  setEraseMode: (m: EraseMode) => void;
   undo: () => void;
   redo: () => void;
   undoDisabled: boolean;
