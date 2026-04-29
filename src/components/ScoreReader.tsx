@@ -14,7 +14,7 @@ import {
   X,
   Pencil,
   Type as TypeIcon,
-  Eraser,
+  Type as TypeIcon,
   Undo2,
   Redo2,
 } from "lucide-react";
