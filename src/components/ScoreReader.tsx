@@ -494,55 +494,94 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
       {/* Canvas area */}
       <div ref={containerRef} className="flex-1 overflow-hidden flex items-center justify-center relative">
         <div
-          className="relative shadow-elev bg-paper"
-          style={{ width: renderSize.w || undefined, height: renderSize.h || undefined }}
+          className="relative shadow-elev bg-paper overflow-hidden"
+          style={{
+            width: renderSize.w || undefined,
+            height: halfPage && renderSize.h ? renderSize.h / 2 : (renderSize.h || undefined),
+          }}
         >
-          <canvas ref={canvasRef} className="block" />
-          <canvas ref={overlayRef} className="absolute inset-0 pointer-events-none" />
-
-          {/* Tap zones (finger only) */}
+          {/* Inner stack — translated up when viewing the bottom half */}
           <div
-            className="absolute inset-y-0 left-0 w-1/4 z-10"
+            className="relative"
+            style={{
+              width: renderSize.w || undefined,
+              height: renderSize.h || undefined,
+              transform: halfPage && halfIdx === 1 ? `translateY(-${renderSize.h / 2}px)` : undefined,
+              transition: "transform 200ms ease",
+            }}
+          >
+            <canvas ref={canvasRef} className="block" />
+            <canvas ref={overlayRef} className="absolute inset-0 pointer-events-none" />
+
+            {tool === "draw" ? (
+              <DrawingCanvas
+                width={renderSize.w}
+                height={renderSize.h}
+                color={color}
+                widthScale={width / 4}
+                acceptAll={false}
+                onStrokeComplete={handleStrokeComplete}
+                className="absolute inset-0 z-20"
+              />
+            ) : tool === "pan" ? null : (
+              <div
+                ref={drawRef as unknown as React.RefObject<HTMLDivElement>}
+                className="absolute inset-0 z-20"
+                style={{
+                  touchAction: "none",
+                  cursor: tool === "text" ? "text" : "crosshair",
+                }}
+                onPointerDown={onAuxPointerDown}
+              />
+            )}
+          </div>
+
+          {/* Tap zones (finger only) — sit on top, span the visible area */}
+          <div
+            className="absolute inset-y-0 left-0 w-1/4 z-30"
             style={{ touchAction: "manipulation" }}
             onPointerDown={handleZoneTap("prev")}
-            aria-label="Previous page"
+            aria-label="Previous"
           />
           <div
-            className="absolute inset-y-0 left-1/4 w-1/2 z-10"
+            className="absolute inset-y-0 left-1/4 w-1/2 z-30"
             style={{ touchAction: "manipulation" }}
             onPointerDown={handleZoneTap("center")}
             aria-label="Toggle controls"
           />
           <div
-            className="absolute inset-y-0 right-0 w-1/4 z-10"
+            className="absolute inset-y-0 right-0 w-1/4 z-30"
             style={{ touchAction: "manipulation" }}
             onPointerDown={handleZoneTap("next")}
-            aria-label="Next page"
+            aria-label="Next"
           />
 
-          {tool === "draw" ? (
-            <DrawingCanvas
-              width={renderSize.w}
-              height={renderSize.h}
-              color={color}
-              widthScale={width / 4}
-              acceptAll={false}
-              onStrokeComplete={handleStrokeComplete}
-              className="absolute inset-0 z-20"
-            />
-          ) : tool === "pan" ? null : (
+          {/* Visual half-page divider hint */}
+          {halfPage && (
             <div
-              ref={drawRef as unknown as React.RefObject<HTMLDivElement>}
-              className="absolute inset-0 z-20"
-              style={{
-                touchAction: "none",
-                cursor: tool === "text" ? "text" : "crosshair",
-              }}
-              onPointerDown={onAuxPointerDown}
+              className="pointer-events-none absolute left-0 right-0 z-20 h-px bg-foreground/15"
+              style={{ top: halfIdx === 0 ? "100%" : 0 }}
+              aria-hidden
             />
           )}
         </div>
       </div>
+
+      {/* Reader sheet (image_1) */}
+      <ReaderSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        halfPage={halfPage}
+        setHalfPage={(v) => { setHalfPage(v); if (!v) setHalfIdx(0); }}
+        warmScreen={warmScreen}
+        setWarmScreen={setWarmScreen}
+        onPrev={goPrev}
+        onNext={goNext}
+        pageLabel={`Sida ${pageIndex + 1} av ${pageCount || score.page_count || 0}${halfPage ? ` · ${halfIdx === 0 ? "övre" : "nedre"}` : ""}`}
+      />
+
+      {/* Warm screen overlay (image_1) */}
+      <WarmScreen active={warmScreen} />
 
       {/* === ForScore-style floating top toolbar (3 glass pills) === */}
       <div
