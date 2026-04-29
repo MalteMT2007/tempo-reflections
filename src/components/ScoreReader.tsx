@@ -261,7 +261,7 @@ export const ScoreReader = ({ score, sessionId, onClose }: Props) => {
   useEffect(() => {
     const overlay = overlayRef.current;
     if (!overlay) return;
-    const ctx = overlay.getContext("2d")!;
+    const ctx = overlay.getContext("2d", { desynchronized: true, alpha: true }) as CanvasRenderingContext2D;
     const dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, renderSize.w, renderSize.h);
